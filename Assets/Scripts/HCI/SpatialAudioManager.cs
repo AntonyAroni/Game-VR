@@ -47,6 +47,10 @@ namespace ZombieCheckpoint.HCI
             EnsureProceduralSound("pneumatic_hiss", GeneratePneumaticHissClip(0.85f));
             EnsureProceduralSound("door_heavy_latch", GenerateHeavyLatchClip(0.45f));
             EnsureProceduralSound("pupil_scan_beep", GenerateChimeClip(880f, 1318.5f, 1760f)); // Tono agudo de escaneo médico
+            EnsureProceduralSound("footstep_soft", GenerateFootstepClip(130f, 0.12f));
+            EnsureProceduralSound("footstep_heavy", GenerateFootstepClip(85f, 0.16f));
+            EnsureProceduralSound("uv_hum", GenerateUVHumClip(0.35f));
+            EnsureProceduralSound("uv_switch", GenerateClickClip(2400f, 0.035f));
         }
 
         private void OnEnable()
@@ -249,6 +253,48 @@ namespace ZombieCheckpoint.HCI
             }
 
             AudioClip clip = AudioClip.Create("proc_latch", samplesCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private AudioClip GenerateFootstepClip(float baseFreq, float duration)
+        {
+            int sampleRate = 44100;
+            int samplesCount = (int)(sampleRate * duration);
+            float[] samples = new float[samplesCount];
+
+            for (int i = 0; i < samplesCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                float envelope = Mathf.Exp(-t * 32f);
+                // Golpe amortiguado en piso hospitalario: sub-golpe + fricción de zapato
+                float lowTap = Mathf.Sin(2f * Mathf.PI * baseFreq * t);
+                float soleFriction = (UnityEngine.Random.value * 2f - 1f) * 0.45f * Mathf.Exp(-t * 45f);
+                samples[i] = (lowTap * 0.65f + soleFriction) * envelope * 0.75f;
+            }
+
+            AudioClip clip = AudioClip.Create("proc_footstep", samplesCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private AudioClip GenerateUVHumClip(float duration)
+        {
+            int sampleRate = 44100;
+            int samplesCount = (int)(sampleRate * duration);
+            float[] samples = new float[samplesCount];
+
+            for (int i = 0; i < samplesCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                // Zumbido tenue de reactor de mercurio / balastro UV (~120Hz + 2400Hz armónico)
+                float hum = Mathf.Sin(2f * Mathf.PI * 120f * t) * 0.35f;
+                float buzz = Mathf.Sin(2f * Mathf.PI * 2400f * t) * 0.12f;
+                float noise = (UnityEngine.Random.value * 2f - 1f) * 0.04f;
+                samples[i] = (hum + buzz + noise) * 0.4f;
+            }
+
+            AudioClip clip = AudioClip.Create("proc_uv_hum", samplesCount, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }

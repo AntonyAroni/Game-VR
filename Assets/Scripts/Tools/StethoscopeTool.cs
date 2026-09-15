@@ -86,11 +86,12 @@ namespace ZombieCheckpoint.Tools
 
             HeartbeatSymptom closest = null;
             float minDist = detectionDistance;
+            Vector3 origin = bellCollider != null ? bellCollider.bounds.center : transform.position;
 
             foreach (var s in sceneHeartbeatSymptoms)
             {
                 if (s == null) continue;
-                float d = Vector3.Distance(transform.position, s.transform.position);
+                float d = Vector3.Distance(origin, s.transform.position);
                 if (d < minDist)
                 {
                     minDist = d;

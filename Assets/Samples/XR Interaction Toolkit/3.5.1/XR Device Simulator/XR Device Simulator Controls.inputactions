@@ -388,6 +388,28 @@
                 },
                 {
                     "name": "",
+                    "id": "3c180b5b-f155-4dce-b9f3-7c473896cf32",
+                    "path": "<Keyboard>/leftAlt",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Rotate Mode Override",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4d291c6c-a266-4edf-caf4-8d584907da43",
+                    "path": "<Mouse>/middleButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Rotate Mode Override",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "0fa0d566-1e07-4e17-9b14-3e8fce69ec26",
                     "path": "<Keyboard>/x",
                     "interactions": "",

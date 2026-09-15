@@ -168,6 +168,9 @@ namespace ZombieCheckpoint.Core
             {
                 currentSurvivor = SetupSurvivorComponents(spawnedNpc, hasBite, hasHeartbeatAnomaly, hasPupilAnomaly);
                 currentSurvivor.SetupProfile(survivorName, survivorAge, isInfected, hasBite, hasHeartbeatAnomaly, hasPupilAnomaly);
+
+                // Aproximación a pie del civil hacia la ventanilla de la cabina
+                yield return StartCoroutine(AnimateArrivalRoutine(spawnedNpc.transform));
             }
 
             // 5. Configurar el pase sanitario / documento
@@ -395,25 +398,97 @@ namespace ZombieCheckpoint.Core
             quarantineAlarmLight.intensity = origIntensity;
         }
 
-        private IEnumerator AnimateDepartureRoutine(Transform survivorTransform, VerdictType verdict)
+        private IEnumerator AnimateArrivalRoutine(Transform survivorTransform)
         {
             if (survivorTransform == null) yield break;
 
-            Vector3 startPos = survivorTransform.position;
-            Vector3 targetPos = (verdict == VerdictType.SendToQuarantine)
-                ? startPos + new Vector3(0f, 0f, 2.8f) // Marcha hacia la puerta de cuarentena al fondo
-                : startPos + new Vector3(2.4f, 0f, 0.4f); // Marcha hacia el corredor de la zona segura
+            Vector3 finalPos = survivorStandPoint != null ? survivorStandPoint.position : new Vector3(0f, 0f, 1.45f);
+            Quaternion finalRot = survivorStandPoint != null ? survivorStandPoint.rotation : Quaternion.Euler(0f, 180f, 0f);
+
+            // Inicia caminando desde el pasillo detrás de la cabina
+            Vector3 startPos = finalPos + new Vector3(0f, 0f, 2.0f);
+            survivorTransform.position = startPos;
+            survivorTransform.rotation = Quaternion.Euler(0f, 180f, 0f);
+
+            var humController = survivorTransform.GetComponent<SurvivorHumanoidController>();
+            if (humController != null)
+            {
+                humController.SetWalking(true, 1.0f);
+            }
 
             float elapsed = 0f;
-            float duration = delayBetweenSurvivors * 0.8f;
-
+            float duration = 1.6f;
             while (elapsed < duration)
             {
                 if (survivorTransform == null) yield break;
                 elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                survivorTransform.position = Vector3.Lerp(startPos, targetPos, t);
+                float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+                survivorTransform.position = Vector3.Lerp(startPos, finalPos, t);
                 yield return null;
+            }
+
+            survivorTransform.position = finalPos;
+            survivorTransform.rotation = finalRot;
+
+            if (humController != null)
+            {
+                humController.SetWalking(false);
+            }
+        }
+
+        private IEnumerator AnimateDepartureRoutine(Transform survivorTransform, VerdictType verdict)
+        {
+            if (survivorTransform == null) yield break;
+
+            var humController = survivorTransform.GetComponent<SurvivorHumanoidController>();
+
+            Vector3 startPos = survivorTransform.position;
+            Vector3 targetPos = (verdict == VerdictType.SendToQuarantine)
+                ? new Vector3(0f, startPos.y, 4.35f) // Marcha hacia la compuerta de cuarentena al fondo
+                : new Vector3(3.2f, startPos.y, 0.4f); // Marcha hacia el corredor de la zona segura a la derecha
+
+            // 1. Giro suave del cuerpo hacia la salida asignada (dirección intencional de IHC)
+            Vector3 dir = (targetPos - startPos);
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+            {
+                Quaternion startRot = survivorTransform.rotation;
+                Quaternion targetRot = Quaternion.LookRotation(dir);
+
+                float turnElapsed = 0f;
+                float turnDuration = 0.45f;
+                while (turnElapsed < turnDuration)
+                {
+                    if (survivorTransform == null) yield break;
+                    turnElapsed += Time.deltaTime;
+                    float t = Mathf.SmoothStep(0f, 1f, turnElapsed / turnDuration);
+                    survivorTransform.rotation = Quaternion.Slerp(startRot, targetRot, t);
+                    yield return null;
+                }
+            }
+
+            // 2. Activación de la marcha con cinemática procedural y sonido de pasos
+            if (humController != null)
+            {
+                humController.SetWalking(true, verdict == VerdictType.SendToQuarantine ? 1.25f : 1.0f);
+            }
+
+            float walkElapsed = 0f;
+            float walkDuration = delayBetweenSurvivors * 0.75f;
+            Vector3 walkStartPos = survivorTransform.position;
+
+            while (walkElapsed < walkDuration)
+            {
+                if (survivorTransform == null) yield break;
+                walkElapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(walkElapsed / walkDuration);
+                survivorTransform.position = Vector3.Lerp(walkStartPos, targetPos, t);
+                yield return null;
+            }
+
+            if (humController != null)
+            {
+                humController.SetWalking(false);
             }
         }
 

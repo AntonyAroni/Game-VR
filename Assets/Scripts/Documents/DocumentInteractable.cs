@@ -58,9 +58,29 @@ namespace ZombieCheckpoint.Documents
             CurrentData = data;
             AppliedVerdict = VerdictType.None;
             
+            if (documentView == null) documentView = GetComponentInChildren<DocumentView>();
             if (documentView != null)
             {
                 documentView.BindData(data);
+            }
+        }
+
+        private float lastUVExposeTime = -10f;
+
+        public void ReceiveUVLight(bool isUVActive)
+        {
+            if (isUVActive)
+            {
+                lastUVExposeTime = Time.time;
+            }
+        }
+
+        private void Update()
+        {
+            bool isCurrentlyUnderUV = (Time.time - lastUVExposeTime) < 0.2f;
+            if (documentView != null)
+            {
+                documentView.SetUVExposure(isCurrentlyUnderUV);
             }
         }
 
