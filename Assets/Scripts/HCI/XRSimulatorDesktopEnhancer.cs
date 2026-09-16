@@ -58,7 +58,7 @@ namespace ZombieCheckpoint.HCI
         {
             if (simulator == null)
             {
-                simulator = GetComponent<XRDeviceSimulator>() ?? FindAnyObjectByType<XRDeviceSimulator>();
+                if (!TryGetComponent(out simulator)) simulator = FindAnyObjectByType<XRDeviceSimulator>();
             }
 
             if (simulator != null)
