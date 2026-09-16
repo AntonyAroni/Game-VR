@@ -70,7 +70,7 @@ namespace ZombieCheckpoint.Tools
         {
             if (meshRenderer == null)
             {
-                meshRenderer = GetComponent<MeshRenderer>() ?? GetComponentInChildren<MeshRenderer>();
+                if (!TryGetComponent(out meshRenderer)) meshRenderer = GetComponentInChildren<MeshRenderer>();
             }
 
             if (meshRenderer != null)

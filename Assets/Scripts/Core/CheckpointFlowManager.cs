@@ -241,8 +241,8 @@ namespace ZombieCheckpoint.Core
 
         private SurvivorModel SetupSurvivorComponents(GameObject npc, bool hasBite, bool hasHeartbeatAnomaly, bool hasPupilAnomaly)
         {
-            var model = npc.GetComponent<SurvivorModel>() ?? npc.AddComponent<SurvivorModel>();
-            var humController = npc.GetComponent<SurvivorHumanoidController>() ?? npc.AddComponent<SurvivorHumanoidController>();
+            var model = npc.GetOrAddComponent<SurvivorModel>();
+            var humController = npc.GetOrAddComponent<SurvivorHumanoidController>();
 
             Transform rightForeArm = null;
             Transform spine1 = null;
@@ -278,7 +278,7 @@ namespace ZombieCheckpoint.Core
 
                 Destroy(biteMark.GetComponent<Collider>());
 
-                biteSymptom = rightForeArm.GetComponent<BiteMarkSymptom>() ?? rightForeArm.gameObject.AddComponent<BiteMarkSymptom>();
+                biteSymptom = rightForeArm.gameObject.GetOrAddComponent<BiteMarkSymptom>();
                 typeof(BiteMarkSymptom).GetField("woundVisualObject", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                     ?.SetValue(biteSymptom, biteMark);
                 typeof(BiteMarkSymptom).GetField("woundTransform", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
@@ -289,7 +289,7 @@ namespace ZombieCheckpoint.Core
             HeartbeatSymptom heartbeat = null;
             if (spine1 != null)
             {
-                heartbeat = spine1.GetComponent<HeartbeatSymptom>() ?? spine1.gameObject.AddComponent<HeartbeatSymptom>();
+                heartbeat = spine1.gameObject.GetOrAddComponent<HeartbeatSymptom>();
                 heartbeat.Initialize(hasHeartbeatAnomaly);
             }
 
@@ -303,8 +303,8 @@ namespace ZombieCheckpoint.Core
                     sc.radius = 0.16f;
                     sc.isTrigger = true;
                 }
-                var headExaminer = head.GetComponent<BodyPartExaminer>() ?? head.gameObject.AddComponent<BodyPartExaminer>();
-                pupil = head.GetComponent<PupilSymptom>() ?? head.gameObject.AddComponent<PupilSymptom>();
+                head.gameObject.GetOrAddComponent<BodyPartExaminer>();
+                pupil = head.gameObject.GetOrAddComponent<PupilSymptom>();
                 pupil.Initialize(hasPupilAnomaly);
             }
 

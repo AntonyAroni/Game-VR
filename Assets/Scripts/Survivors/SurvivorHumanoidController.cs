@@ -98,8 +98,7 @@ namespace ZombieCheckpoint.Survivors
 
                 if (rightHandGrab == null)
                 {
-                    rightHandGrab = rightHand.GetComponent<XRGrabInteractable>() 
-                                 ?? rightHand.gameObject.AddComponent<XRGrabInteractable>();
+                    rightHandGrab = rightHand.gameObject.GetOrAddComponent<XRGrabInteractable>();
                 }
             }
 
@@ -116,8 +115,7 @@ namespace ZombieCheckpoint.Survivors
 
                 if (heartbeatSymptom == null)
                 {
-                    heartbeatSymptom = spine1Bone.GetComponent<HeartbeatSymptom>() 
-                                    ?? spine1Bone.gameObject.AddComponent<HeartbeatSymptom>();
+                    heartbeatSymptom = spine1Bone.gameObject.GetOrAddComponent<HeartbeatSymptom>();
                 }
 
                 var examiner = spine1Bone.GetComponent<BodyPartExaminer>();
@@ -139,8 +137,7 @@ namespace ZombieCheckpoint.Survivors
 
                 if (biteSymptom == null)
                 {
-                    biteSymptom = rightForeArm.GetComponent<BiteMarkSymptom>() 
-                               ?? rightForeArm.gameObject.AddComponent<BiteMarkSymptom>();
+                    biteSymptom = rightForeArm.gameObject.GetOrAddComponent<BiteMarkSymptom>();
                 }
 
                 var armExaminer = rightForeArm.GetComponent<BodyPartExaminer>();
