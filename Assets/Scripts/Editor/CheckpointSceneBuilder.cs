@@ -69,6 +69,8 @@ namespace ZombieCheckpoint.Editor
             Material woundMat = new Material(urpShader) { name = "M_InfectedWound", color = new Color(0.7f, 0.05f, 0.05f) };
             Material toolMat = new Material(urpShader) { name = "M_MetalTool", color = new Color(0.65f, 0.7f, 0.75f) };
             Material deskMat = new Material(urpShader) { name = "M_MonitorFrame", color = new Color(0.15f, 0.17f, 0.2f) };
+            Material stampWoodMat = new Material(urpShader) { name = "M_StampWood", color = new Color(0.32f, 0.2f, 0.12f) };
+            Material stampBrassMat = new Material(urpShader) { name = "M_StampBrass", color = new Color(0.72f, 0.62f, 0.35f) };
 
             // --- 3. HABITACIÓN HOSPITALARIA (SALA DE AISLAMIENTO) ---
             GameObject roomRoot = new GameObject("Quarantine_Room");
@@ -113,13 +115,55 @@ namespace ZombieCheckpoint.Editor
             leftWall.transform.localScale = new Vector3(0.1f, 3.2f, 6.5f);
             if (tiledWallZ != null) leftWall.GetComponent<Renderer>().sharedMaterial = tiledWallZ;
 
-            // Pared derecha
-            GameObject rightWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            rightWall.name = "Wall_Right";
-            rightWall.transform.SetParent(roomRoot.transform);
-            rightWall.transform.position = new Vector3(2.75f, 1.6f, 1.25f);
-            rightWall.transform.localScale = new Vector3(0.1f, 3.2f, 6.5f);
-            if (tiledWallZ != null) rightWall.GetComponent<Renderer>().sharedMaterial = tiledWallZ;
+            // Pared derecha con vano / apertura para el corredor de salida hacia la Zona Segura
+            GameObject rightWallBack = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rightWallBack.name = "Wall_Right_Back";
+            rightWallBack.transform.SetParent(roomRoot.transform);
+            rightWallBack.transform.position = new Vector3(2.75f, 1.6f, -1.05f);
+            rightWallBack.transform.localScale = new Vector3(0.1f, 3.2f, 1.9f);
+            if (tiledWallZ != null) rightWallBack.GetComponent<Renderer>().sharedMaterial = tiledWallZ;
+
+            GameObject rightWallFront = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rightWallFront.name = "Wall_Right_Front";
+            rightWallFront.transform.SetParent(roomRoot.transform);
+            rightWallFront.transform.position = new Vector3(2.75f, 1.6f, 2.75f);
+            rightWallFront.transform.localScale = new Vector3(0.1f, 3.2f, 3.5f);
+            if (tiledWallZ != null) rightWallFront.GetComponent<Renderer>().sharedMaterial = tiledWallZ;
+
+            GameObject rightWallLintel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rightWallLintel.name = "Wall_Right_Lintel";
+            rightWallLintel.transform.SetParent(roomRoot.transform);
+            rightWallLintel.transform.position = new Vector3(2.75f, 2.65f, 0.45f);
+            rightWallLintel.transform.localScale = new Vector3(0.1f, 1.1f, 1.3f);
+            if (tiledWallZ != null) rightWallLintel.GetComponent<Renderer>().sharedMaterial = tiledWallZ;
+
+            // Letrero luminoso superior de Zona Segura (Affordance y Visibilidad IHC)
+            GameObject safeSign = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            safeSign.name = "Sign_SafeZone_Exit";
+            safeSign.transform.SetParent(roomRoot.transform);
+            safeSign.transform.position = new Vector3(2.68f, 2.2f, 0.45f);
+            safeSign.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+            safeSign.transform.localScale = new Vector3(1.1f, 0.28f, 0.05f);
+            var signMat = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
+            signMat.color = new Color(0.05f, 0.55f, 0.15f);
+            signMat.EnableKeyword("_EMISSION");
+            signMat.SetColor("_EmissionColor", new Color(0.1f, 0.8f, 0.2f));
+            safeSign.GetComponent<Renderer>().sharedMaterial = signMat;
+
+            // Canvas con texto para el cartel de Zona Segura
+            GameObject signCanvasObj = new GameObject("SafeSign_Canvas");
+            signCanvasObj.transform.SetParent(safeSign.transform, false);
+            signCanvasObj.transform.localPosition = new Vector3(0f, 0f, -0.6f);
+            signCanvasObj.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            signCanvasObj.transform.localScale = new Vector3(0.003f, 0.003f, 0.003f);
+            var signCanvas = signCanvasObj.AddComponent<Canvas>();
+            signCanvas.renderMode = RenderMode.WorldSpace;
+            var signTmp = signCanvasObj.AddComponent<TextMeshProUGUI>();
+            signTmp.text = "SALIDA ZONA SEGURA ➔";
+            signTmp.fontSize = 26;
+            signTmp.fontStyle = FontStyles.Bold;
+            signTmp.color = Color.white;
+            signTmp.alignment = TextAlignmentOptions.Center;
 
             // --- 4. MODELOS Y PROPS DEL HOSPITAL ABANDONADO ---
             // A. Puerta de aislamiento / cuarentena al fondo
@@ -267,6 +311,7 @@ namespace ZombieCheckpoint.Editor
             SurvivorModel survivorModel;
             BiteMarkSymptom biteSymptom = null;
             HeartbeatSymptom heartbeat = null;
+            PupilSymptom pupil = null;
 
             if (npcPrefab != null)
             {
@@ -308,6 +353,28 @@ namespace ZombieCheckpoint.Editor
                 if (spine1 != null)
                 {
                     heartbeat = spine1.gameObject.GetComponent<HeartbeatSymptom>();
+                    if (heartbeat == null) heartbeat = spine1.gameObject.AddComponent<HeartbeatSymptom>();
+                    heartbeat.Initialize(false);
+                }
+
+                pupil = null;
+                Transform head = null;
+                foreach (var t in survivorRoot.GetComponentsInChildren<Transform>())
+                {
+                    if (t.name == "Head") { head = t; break; }
+                }
+                if (head != null)
+                {
+                    var col = head.GetComponent<Collider>();
+                    if (col == null)
+                    {
+                        var sc = head.gameObject.AddComponent<SphereCollider>();
+                        sc.radius = 0.16f;
+                        sc.isTrigger = true;
+                    }
+                    pupil = head.GetComponent<PupilSymptom>();
+                    if (pupil == null) pupil = head.gameObject.AddComponent<PupilSymptom>();
+                    pupil.Initialize(false);
                 }
             }
             else
@@ -323,6 +390,8 @@ namespace ZombieCheckpoint.Editor
                 ?.SetValue(survivorModel, biteSymptom);
             sModelType.GetField("heartbeatSymptom", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(survivorModel, heartbeat);
+            sModelType.GetField("pupilSymptom", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(survivorModel, pupil);
 
             // --- 8. LINTERNA 3D REAL (Del Asset Importado) ---
             var flashlightPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Flashlight/Model/Flashlight.prefab");
@@ -394,48 +463,77 @@ namespace ZombieCheckpoint.Editor
                 ?.SetValue(flashTool, fSpot);
 
             // --- 9. HERRAMIENTAS RESTANTES ---
-            // Estetoscopio
-            GameObject stetho = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            stetho.name = "Tool_Stethoscope";
+            // Estetoscopio 3D Real
+            var stethoPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Stethoscope/Prefabs/Stethoscope.prefab");
+            GameObject stetho;
+            if (stethoPrefab != null)
+            {
+                stetho = (GameObject)PrefabUtility.InstantiatePrefab(stethoPrefab, boothRoot.transform);
+                PrefabUtility.UnpackPrefabInstance(stetho, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+                stetho.name = "Tool_Stethoscope";
+                stetho.transform.position = new Vector3(-0.18f, deskSurfaceY + 0.02f, 0.62f);
+                stetho.transform.rotation = Quaternion.Euler(0f, 35f, 0f);
+
+                var boxCol = stetho.GetComponent<BoxCollider>();
+                if (boxCol == null) boxCol = stetho.AddComponent<BoxCollider>();
+                boxCol.center = new Vector3(0f, 0.05f, 0.08f);
+                boxCol.size = new Vector3(0.22f, 0.12f, 0.35f);
+            }
+            else
+            {
+                stetho = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                stetho.name = "Tool_Stethoscope";
+                stetho.transform.SetParent(boothRoot.transform);
+                stetho.transform.position = new Vector3(-0.18f, deskSurfaceY + 0.02f, 0.62f);
+                stetho.transform.localScale = new Vector3(0.08f, 0.02f, 0.08f);
+                stetho.GetComponent<Renderer>().sharedMaterial = toolMat;
+            }
+
             stetho.tag = "Tool";
-            stetho.transform.SetParent(boothRoot.transform);
-            stetho.transform.position = new Vector3(-0.18f, deskSurfaceY + 0.02f, 0.62f);
-            stetho.transform.localScale = new Vector3(0.08f, 0.02f, 0.08f);
-            stetho.GetComponent<Renderer>().sharedMaterial = toolMat;
-            var stethoRb = stetho.AddComponent<Rigidbody>();
+            var stethoRb = stetho.GetComponent<Rigidbody>();
+            if (stethoRb == null) stethoRb = stetho.AddComponent<Rigidbody>();
+            stethoRb.mass = 0.35f;
             stethoRb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-            stetho.AddComponent<XRGrabInteractable>();
-            stetho.AddComponent<StethoscopeTool>();
+            stethoRb.interpolation = RigidbodyInterpolation.Interpolate;
 
-            // Sello Aprobado
-            GameObject stampApp = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            stampApp.name = "Tool_Stamp_Approved";
-            stampApp.tag = "Tool";
-            stampApp.transform.SetParent(boothRoot.transform);
-            stampApp.transform.position = new Vector3(0.20f, deskSurfaceY + 0.03f, 0.62f);
-            stampApp.transform.localScale = new Vector3(0.06f, 0.06f, 0.06f);
-            stampApp.GetComponent<Renderer>().sharedMaterial = greenMat;
-            var appRb = stampApp.AddComponent<Rigidbody>();
-            appRb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-            stampApp.AddComponent<XRGrabInteractable>();
-            var stampAppTool = stampApp.AddComponent<StampTool>();
-            typeof(StampTool).GetField("stampVerdict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(stampAppTool, VerdictType.ApprovedSafeZone);
+            var stethoGrab = stetho.GetComponent<XRGrabInteractable>();
+            if (stethoGrab == null) stethoGrab = stetho.AddComponent<XRGrabInteractable>();
+            stethoGrab.movementType = UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable.MovementType.VelocityTracking;
+            stethoGrab.throwOnDetach = true;
+            stethoGrab.smoothPosition = true;
+            stethoGrab.smoothRotation = true;
 
-            // Sello Cuarentena
-            GameObject stampQuar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            stampQuar.name = "Tool_Stamp_Quarantine";
-            stampQuar.tag = "Tool";
-            stampQuar.transform.SetParent(boothRoot.transform);
-            stampQuar.transform.position = new Vector3(0.35f, deskSurfaceY + 0.03f, 0.62f);
-            stampQuar.transform.localScale = new Vector3(0.06f, 0.06f, 0.06f);
-            stampQuar.GetComponent<Renderer>().sharedMaterial = redMat;
-            var quarRb = stampQuar.AddComponent<Rigidbody>();
-            quarRb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-            stampQuar.AddComponent<XRGrabInteractable>();
-            var stampQuarTool = stampQuar.AddComponent<StampTool>();
-            typeof(StampTool).GetField("stampVerdict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(stampQuarTool, VerdictType.SendToQuarantine);
+            Transform bellTrans = null;
+            foreach (var t in stetho.GetComponentsInChildren<Transform>())
+            {
+                if (t.name == "Bell") { bellTrans = t; break; }
+            }
+            SphereCollider bellCol = null;
+            if (bellTrans != null)
+            {
+                bellCol = bellTrans.GetComponent<SphereCollider>();
+                if (bellCol == null) bellCol = bellTrans.gameObject.AddComponent<SphereCollider>();
+                bellCol.radius = 0.045f;
+                bellCol.isTrigger = true;
+            }
+
+            var stethoToolComp = stetho.GetComponent<StethoscopeTool>();
+            if (stethoToolComp == null) stethoToolComp = stetho.AddComponent<StethoscopeTool>();
+            if (bellCol != null)
+            {
+                typeof(StethoscopeTool).GetField("bellCollider", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    ?.SetValue(stethoToolComp, bellCol);
+            }
+
+            // Sello Aprobado (Diegético: Base con placa entintada, mango ergonómico y perilla)
+            GameObject stampApp = CreateDiegeticStamp(boothRoot, "Tool_Stamp_Approved",
+                new Vector3(0.18f, deskSurfaceY + 0.01f, 0.62f), VerdictType.ApprovedSafeZone,
+                greenMat, stampWoodMat, stampBrassMat);
+
+            // Sello Cuarentena (Diegético: Base con placa entintada, mango ergonómico y perilla)
+            GameObject stampQuar = CreateDiegeticStamp(boothRoot, "Tool_Stamp_Quarantine",
+                new Vector3(0.32f, deskSurfaceY + 0.01f, 0.62f), VerdictType.SendToQuarantine,
+                redMat, stampWoodMat, stampBrassMat);
 
             // --- 10. DOCUMENTO SANITARIO ---
             GameObject docObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -474,9 +572,10 @@ namespace ZombieCheckpoint.Editor
             GameObject appStampVis = new GameObject("Stamp_Approved_Vis");
             appStampVis.transform.SetParent(canvasObj.transform, false);
             var appTmp = appStampVis.AddComponent<TextMeshProUGUI>();
-            appTmp.text = "[ APROBADO ]";
-            appTmp.fontSize = 32;
-            appTmp.color = new Color(0f, 0.65f, 0.1f);
+            appTmp.text = "┌───────────────────┐\n│     APROBADO      │\n│   ZONA SEGURA A   │\n│   PASE SANITARIO  │\n└───────────────────┘";
+            appTmp.fontSize = 19;
+            appTmp.lineSpacing = -10;
+            appTmp.color = new Color(0f, 0.7f, 0.15f, 0.95f);
             appTmp.fontStyle = FontStyles.Bold;
             appTmp.alignment = TextAlignmentOptions.Center;
             appStampVis.SetActive(false);
@@ -484,12 +583,26 @@ namespace ZombieCheckpoint.Editor
             GameObject quarStampVis = new GameObject("Stamp_Quarantine_Vis");
             quarStampVis.transform.SetParent(canvasObj.transform, false);
             var quarTmp = quarStampVis.AddComponent<TextMeshProUGUI>();
-            quarTmp.text = "[ CUARENTENA ]";
-            quarTmp.fontSize = 32;
-            quarTmp.color = new Color(0.85f, 0.1f, 0.1f);
+            quarTmp.text = "┌───────────────────┐\n│    CUARENTENA     │\n│  AISLAMIENTO BIO  │\n│ ORDEN DETENCIÓN   │\n└───────────────────┘";
+            quarTmp.fontSize = 19;
+            quarTmp.lineSpacing = -10;
+            quarTmp.color = new Color(0.9f, 0.12f, 0.12f, 0.95f);
             quarTmp.fontStyle = FontStyles.Bold;
             quarTmp.alignment = TextAlignmentOptions.Center;
             quarStampVis.SetActive(false);
+
+            GameObject uvWatermarkVis = new GameObject("Stamp_UV_Watermark");
+            uvWatermarkVis.transform.SetParent(canvasObj.transform, false);
+            var uvTmp = uvWatermarkVis.AddComponent<TextMeshProUGUI>();
+            uvTmp.text = "✦ SELLO FORENSE OFICIAL ✦\nMINISTERIO DE SALUD\n[BIO-SEGURIDAD CERTIFICADA]";
+            uvTmp.fontSize = 17;
+            uvTmp.lineSpacing = -10;
+            uvTmp.color = new Color(0.15f, 1.0f, 0.75f, 0.95f);
+            uvTmp.fontStyle = FontStyles.Bold;
+            uvTmp.alignment = TextAlignmentOptions.Center;
+            var uvRect = uvWatermarkVis.GetComponent<RectTransform>();
+            uvRect.localPosition = new Vector3(0f, -25f, 0f);
+            uvWatermarkVis.SetActive(false);
 
             // --- 11. BOTONES FÍSICOS DE MESA ---
             GameObject btnGreen = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -506,13 +619,70 @@ namespace ZombieCheckpoint.Editor
             GameObject btnRed = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             btnRed.name = "Button_Quarantine";
             btnRed.transform.SetParent(boothRoot.transform);
-            btnRed.transform.position = new Vector3(-0.55f, deskSurfaceY + 0.02f, 0.62f);
+            btnRed.transform.position = new Vector3(-0.55f, deskSurfaceY + 0.02f, 0.58f);
             btnRed.transform.localScale = new Vector3(0.1f, 0.03f, 0.1f);
             btnRed.GetComponent<Renderer>().sharedMaterial = redMat;
             btnRed.AddComponent<XRSimpleInteractable>();
             var decBtnRed = btnRed.AddComponent<DecisionButton>();
             typeof(DecisionButton).GetField("buttonVerdict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(decBtnRed, VerdictType.SendToQuarantine);
+
+            // --- 12. MONITOR DE SIGNOS VITALES Y ECG DIEGÉTICO (EN ESCRITORIO) ---
+            GameObject vitalMonitor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            vitalMonitor.name = "Vital_Signs_Monitor";
+            vitalMonitor.transform.SetParent(boothRoot.transform);
+            vitalMonitor.transform.position = new Vector3(-0.50f, deskSurfaceY + 0.14f, 0.85f);
+            vitalMonitor.transform.rotation = Quaternion.Euler(0f, 24f, 0f);
+            vitalMonitor.transform.localScale = new Vector3(0.28f, 0.22f, 0.18f);
+            vitalMonitor.GetComponent<Renderer>().sharedMaterial = deskMat;
+
+            GameObject vBezel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            vBezel.name = "Screen_Bezel";
+            vBezel.transform.SetParent(vitalMonitor.transform, false);
+            vBezel.transform.localPosition = new Vector3(0f, 0.01f, -0.51f);
+            vBezel.transform.localScale = new Vector3(0.92f, 0.84f, 0.04f);
+            vBezel.GetComponent<Renderer>().sharedMaterial = new Material(urpShader) { color = new Color(0.06f, 0.08f, 0.07f) };
+            Object.DestroyImmediate(vBezel.GetComponent<Collider>());
+
+            GameObject vCanvasObj = new GameObject("MonitorCanvas");
+            vCanvasObj.transform.SetParent(vitalMonitor.transform, false);
+            vCanvasObj.transform.localPosition = new Vector3(0f, 0.01f, -0.54f);
+            vCanvasObj.transform.localScale = new Vector3(0.0016f, 0.0016f, 0.0016f);
+
+            var vCanvas = vCanvasObj.AddComponent<Canvas>();
+            vCanvas.renderMode = RenderMode.WorldSpace;
+            vCanvasObj.AddComponent<CanvasScaler>();
+
+            GameObject ecgObj = new GameObject("ECG_Oscilloscope");
+            ecgObj.transform.SetParent(vCanvasObj.transform, false);
+            ecgObj.AddComponent<RawImage>();
+            var ecgRect = ecgObj.GetComponent<RectTransform>();
+            ecgRect.sizeDelta = new Vector2(150f, 60f);
+            ecgRect.anchoredPosition = new Vector2(0f, 6f);
+
+            GameObject bpmObj = new GameObject("BpmText");
+            bpmObj.transform.SetParent(vCanvasObj.transform, false);
+            var bpmTmp = bpmObj.AddComponent<TextMeshProUGUI>();
+            bpmTmp.text = "<b>--</b> <size=60%>BPM</size>";
+            bpmTmp.fontSize = 20;
+            bpmTmp.color = new Color(0.3f, 0.95f, 0.6f);
+            bpmTmp.alignment = TextAlignmentOptions.Center;
+            var bpmRect = bpmObj.GetComponent<RectTransform>();
+            bpmRect.sizeDelta = new Vector2(150f, 26f);
+            bpmRect.anchoredPosition = new Vector2(0f, 44f);
+
+            GameObject statusObj = new GameObject("StatusText");
+            statusObj.transform.SetParent(vCanvasObj.transform, false);
+            var statusTmp = statusObj.AddComponent<TextMeshProUGUI>();
+            statusTmp.text = "<color=#559988>○ TELEMETRÍA EN ESPERA</color>";
+            statusTmp.fontSize = 9;
+            statusTmp.color = Color.white;
+            statusTmp.alignment = TextAlignmentOptions.Center;
+            var statusRect = statusObj.GetComponent<RectTransform>();
+            statusRect.sizeDelta = new Vector2(150f, 18f);
+            statusRect.anchoredPosition = new Vector2(0f, -28f);
+
+            vitalMonitor.AddComponent<VitalSignsMonitor>();
 
             // --- 12. MONITOR DIEGÉTICO SUPERIOR ---
             GameObject monitor = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -588,9 +758,98 @@ namespace ZombieCheckpoint.Editor
                     ?.SetValue(flowMgr, woundM);
             }
 
+            // --- 14. SIMULADOR XR PARA DESARROLLO EN ESCRITORIO (PC / TECLADO + RATÓN) ---
+            var simPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Samples/XR Interaction Toolkit/3.5.1/XR Device Simulator/XR Device Simulator.prefab");
+            if (simPrefab != null)
+            {
+                var simObj = (GameObject)PrefabUtility.InstantiatePrefab(simPrefab, boothRoot.transform);
+                PrefabUtility.UnpackPrefabInstance(simObj, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+                simObj.name = "XR Device Simulator";
+                var enhancer = simObj.GetComponent<XRSimulatorDesktopEnhancer>();
+                if (enhancer == null) enhancer = simObj.AddComponent<XRSimulatorDesktopEnhancer>();
+            }
+
             // Guardar escena
             EditorSceneManager.SaveScene(scene, "Assets/Scenes/CheckpointBoothScene.unity");
             Debug.Log("¡Escena hospitalaria de cuarentena construida con éxito con assets reales y nueva iluminación!");
+        }
+
+        private static GameObject CreateDiegeticStamp(GameObject parent, string name, Vector3 position, VerdictType verdict, Material themeMat, Material woodMat, Material metalMat)
+        {
+            GameObject stampRoot = new GameObject(name);
+            stampRoot.tag = "Tool";
+            stampRoot.transform.SetParent(parent.transform);
+            stampRoot.transform.position = position;
+
+            var rb = stampRoot.AddComponent<Rigidbody>();
+            rb.mass = 0.45f;
+            rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+
+            var grabCol = stampRoot.AddComponent<BoxCollider>();
+            grabCol.center = new Vector3(0f, 0.055f, 0f);
+            grabCol.size = new Vector3(0.065f, 0.11f, 0.045f);
+
+            var grabInteractable = stampRoot.AddComponent<XRGrabInteractable>();
+            grabInteractable.movementType = UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable.MovementType.VelocityTracking;
+            grabInteractable.throwOnDetach = true;
+            grabInteractable.smoothPosition = true;
+            grabInteractable.smoothRotation = true;
+
+            // 1. Placa base
+            GameObject baseObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            baseObj.name = "Stamp_Base";
+            baseObj.transform.SetParent(stampRoot.transform, false);
+            baseObj.transform.localPosition = new Vector3(0f, 0.012f, 0f);
+            baseObj.transform.localScale = new Vector3(0.065f, 0.024f, 0.042f);
+            baseObj.GetComponent<Renderer>().sharedMaterial = metalMat;
+            Object.DestroyImmediate(baseObj.GetComponent<Collider>());
+
+            // 2. Almohadilla inferior de tinta
+            GameObject inkPad = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            inkPad.name = "Stamp_InkPad";
+            inkPad.transform.SetParent(stampRoot.transform, false);
+            inkPad.transform.localPosition = new Vector3(0f, 0.002f, 0f);
+            inkPad.transform.localScale = new Vector3(0.062f, 0.005f, 0.038f);
+            inkPad.GetComponent<Renderer>().sharedMaterial = themeMat;
+            var padCol = inkPad.GetComponent<BoxCollider>();
+            padCol.isTrigger = true;
+
+            // 3. Vástago cilíndrico de madera
+            GameObject stem = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            stem.name = "Stamp_Stem";
+            stem.transform.SetParent(stampRoot.transform, false);
+            stem.transform.localPosition = new Vector3(0f, 0.055f, 0f);
+            stem.transform.localScale = new Vector3(0.022f, 0.035f, 0.022f);
+            stem.GetComponent<Renderer>().sharedMaterial = woodMat;
+            Object.DestroyImmediate(stem.GetComponent<Collider>());
+
+            // 4. Perilla ergonómica esférica
+            GameObject knob = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            knob.name = "Stamp_Knob";
+            knob.transform.SetParent(stampRoot.transform, false);
+            knob.transform.localPosition = new Vector3(0f, 0.095f, 0f);
+            knob.transform.localScale = new Vector3(0.038f, 0.038f, 0.038f);
+            knob.GetComponent<Renderer>().sharedMaterial = woodMat;
+            Object.DestroyImmediate(knob.GetComponent<Collider>());
+
+            // 5. Anillo de color de veredicto
+            GameObject ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "Stamp_ColorRing";
+            ring.transform.SetParent(stampRoot.transform, false);
+            ring.transform.localPosition = new Vector3(0f, 0.032f, 0f);
+            ring.transform.localScale = new Vector3(0.035f, 0.006f, 0.035f);
+            ring.GetComponent<Renderer>().sharedMaterial = themeMat;
+            Object.DestroyImmediate(ring.GetComponent<Collider>());
+
+            // Lógica de StampTool
+            var stampTool = stampRoot.AddComponent<StampTool>();
+            typeof(StampTool).GetField("stampVerdict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stampTool, verdict);
+            typeof(StampTool).GetField("baseTriggerCollider", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stampTool, padCol);
+
+            return stampRoot;
         }
     }
 }

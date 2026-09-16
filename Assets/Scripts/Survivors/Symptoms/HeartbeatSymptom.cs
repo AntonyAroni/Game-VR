@@ -63,17 +63,21 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             if (isCurrentlyBeingAuscultated) return;
             isCurrentlyBeingAuscultated = true;
             activeListeningHand = handHoldingTool;
+            float targetBPM = isPositiveForInfection ? infectedBPM : normalBPM;
+            EventBus.TriggerHeartbeatAuscultation(true, targetBPM, isPositiveForInfection);
             pulseRoutine = StartCoroutine(HeartbeatLoop());
         }
 
         public void StopAuscultation()
         {
+            if (!isCurrentlyBeingAuscultated && pulseRoutine == null) return;
             isCurrentlyBeingAuscultated = false;
             if (pulseRoutine != null)
             {
                 StopCoroutine(pulseRoutine);
                 pulseRoutine = null;
             }
+            EventBus.TriggerHeartbeatAuscultation(false, 0f, false);
         }
 
         private IEnumerator HeartbeatLoop()

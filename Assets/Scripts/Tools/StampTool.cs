@@ -7,17 +7,20 @@ using ZombieCheckpoint.Documents;
 namespace ZombieCheckpoint.Tools
 {
     /// <summary>
-    /// Sello tangible (metáfora de Papers, Please).
-    /// Principio de IHC: Manipulación Directa y Tangible. El usuario toma el sello físicamente y lo estampa contra el papel.
-    /// Funciona por colisión física directa y proximidad cuando se sostiene en la mano.
+    /// Sello tangible diegético (metáfora de Papers, Please).
+    /// Principio de IHC: Manipulación Directa y Retroalimentación Háptica/Visual Inmediata.
+    /// Funciona mediante contacto físico real de la almohadilla inferior contra el documento,
+    /// o mediante el gatillo (trigger) cuando la base del sello se encuentra sobre el papel.
     /// </summary>
     [RequireComponent(typeof(XRGrabInteractable))]
+    [RequireComponent(typeof(Rigidbody))]
     public class StampTool : MonoBehaviour, IInspectionTool
     {
         [Header("Configuración del Sello")]
         [SerializeField] private string toolName = "Stamp";
         [SerializeField] private VerdictType stampVerdict = VerdictType.ApprovedSafeZone;
-        [SerializeField] private float cooldownSeconds = 0.5f;
+        [SerializeField] private float cooldownSeconds = 0.6f;
+        [SerializeField] private Collider baseTriggerCollider;
 
         private XRGrabInteractable grabInteractable;
         private HandSide currentHoldingHand = HandSide.Right;
@@ -31,6 +34,23 @@ namespace ZombieCheckpoint.Tools
         private void Awake()
         {
             grabInteractable = GetComponent<XRGrabInteractable>();
+            ResolveBaseCollider();
+        }
+
+        private void ResolveBaseCollider()
+        {
+            if (baseTriggerCollider == null)
+            {
+                var padTransform = transform.Find("Stamp_InkPad") ?? transform.Find("Stamp_Base");
+                if (padTransform != null)
+                {
+                    baseTriggerCollider = padTransform.GetComponent<Collider>();
+                }
+                if (baseTriggerCollider == null)
+                {
+                    baseTriggerCollider = GetComponentInChildren<Collider>();
+                }
+            }
         }
 
         private void Start()
@@ -60,7 +80,7 @@ namespace ZombieCheckpoint.Tools
         {
             string interactorName = args.interactorObject.transform.name.ToLower();
             currentHoldingHand = interactorName.Contains("left") ? HandSide.Left : HandSide.Right;
-            EventBus.RequestHapticImpulse(currentHoldingHand, 0.2f, 0.05f);
+            EventBus.RequestHapticImpulse(currentHoldingHand, 0.25f, 0.05f);
         }
 
         private void OnActivated(ActivateEventArgs args)
@@ -70,37 +90,25 @@ namespace ZombieCheckpoint.Tools
 
         public void OnPrimaryActionTriggered()
         {
-            // Atajo: si se aprieta gatillo mientras se sostiene cerca del papel, estampar
-            StampNearestDocument();
-        }
-
-        private void Update()
-        {
+            // Si el jugador aprieta el gatillo mientras sostiene el sello a menos de 8 cm del papel, estampar
             if (!IsGrabbed) return;
 
-            // Detección de proximidad al papel: si está a menos de 15 cm de la mesa/documento
             if (sceneDocuments == null || sceneDocuments.Length == 0)
             {
                 sceneDocuments = FindObjectsByType<DocumentInteractable>();
             }
 
+            Vector3 stampBasePos = baseTriggerCollider != null ? baseTriggerCollider.bounds.center : transform.position;
+
             foreach (var doc in sceneDocuments)
             {
                 if (doc == null) continue;
-                float dist = Vector3.Distance(transform.position, doc.transform.position);
-                if (dist < 0.15f)
+                float dist = Vector3.Distance(stampBasePos, doc.transform.position);
+                if (dist < 0.08f)
                 {
                     ApplyToTarget(doc.gameObject);
                     break;
                 }
-            }
-        }
-
-        private void StampNearestDocument()
-        {
-            if (sceneDocuments != null && sceneDocuments.Length > 0 && sceneDocuments[0] != null)
-            {
-                ApplyToTarget(sceneDocuments[0].gameObject);
             }
         }
 
@@ -110,16 +118,19 @@ namespace ZombieCheckpoint.Tools
 
             if (target.TryGetComponent(out DocumentInteractable doc))
             {
+                // Evitar doble estampado si ya se aplicó un veredicto en este documento
+                if (doc.AppliedVerdict != VerdictType.None) return;
+
                 lastStampTime = Time.time;
                 doc.ApplyStamp(stampVerdict);
 
-                // Feedback físico de impacto y sonido
-                EventBus.RequestHapticImpulse(currentHoldingHand, 0.85f, 0.15f);
+                // Feedback físico potente: golpe seco de madera/goma + impulso háptico en la mano
+                EventBus.RequestHapticImpulse(currentHoldingHand, 0.90f, 0.14f);
                 EventBus.RequestSpatialAudio("stamp_impact", transform.position, 1.0f);
 
-                Debug.Log($"[Sello] ¡Documento estampado con {stampVerdict}!");
+                Debug.Log($"[Sello] ¡Documento estampado oficialmente con {stampVerdict}!");
 
-                // Notificar veredicto
+                // Notificar veredicto formal al sistema de inspección
                 EventBus.TriggerVerdictSubmitted(stampVerdict);
             }
         }

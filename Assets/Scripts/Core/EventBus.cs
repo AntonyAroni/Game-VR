@@ -51,6 +51,11 @@ namespace ZombieCheckpoint.Core
         public static void RequestSpatialAudio(string clipId, Vector3 worldPosition, float volume = 1.0f)
             => OnSpatialAudioRequested?.Invoke(clipId, worldPosition, volume);
 
+        // --- Eventos de Auscultación y Signos Vitales (ECG) ---
+        public static event Action<bool, float, bool> OnHeartbeatAuscultationStateChanged; // (isAuscultating, targetBpm, isAbnormal)
+        public static void TriggerHeartbeatAuscultation(bool isAuscultating, float targetBpm, bool isAbnormal)
+            => OnHeartbeatAuscultationStateChanged?.Invoke(isAuscultating, targetBpm, isAbnormal);
+
         /// <summary>
         /// Limpia todas las suscripciones para evitar fugas de memoria al recargar escenas.
         /// </summary>
@@ -64,6 +69,7 @@ namespace ZombieCheckpoint.Core
             OnEvaluationResult = null;
             OnHapticImpulseRequested = null;
             OnSpatialAudioRequested = null;
+            OnHeartbeatAuscultationStateChanged = null;
         }
     }
 }
