@@ -109,3 +109,6 @@ InitTestScene*.unity*
 # Archivos personales del IDE
 .vscode/
 *.slnx
+
+# Archivos temporales de pruebas de rendimiento de Unity
+Assets/Resources/PerformanceTestRun*

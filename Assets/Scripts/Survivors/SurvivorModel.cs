@@ -20,6 +20,7 @@ namespace ZombieCheckpoint.Survivors
         [SerializeField] private BiteMarkSymptom biteSymptom;
         [SerializeField] private HeartbeatSymptom heartbeatSymptom;
         [SerializeField] private PupilSymptom pupilSymptom;
+        [SerializeField] private RashSymptom rashSymptom;
 
         [Header("Animador (Mixamo Rig)")]
         [SerializeField] private Animator animator;
@@ -38,12 +39,13 @@ namespace ZombieCheckpoint.Survivors
             if (biteSymptom == null) biteSymptom = GetComponentInChildren<BiteMarkSymptom>(true);
             if (heartbeatSymptom == null) heartbeatSymptom = GetComponentInChildren<HeartbeatSymptom>(true);
             if (pupilSymptom == null) pupilSymptom = GetComponentInChildren<PupilSymptom>(true);
+            if (rashSymptom == null) rashSymptom = GetComponentInChildren<RashSymptom>(true);
         }
 
         /// <summary>
         /// Configura el superviviente de forma procedural para una ronda de inspección.
         /// </summary>
-        public void SetupProfile(string name, int ageVal, bool infected, bool hasBiteMark, bool hasAbnormalHeartbeat, bool hasAbnormalPupil = false)
+        public void SetupProfile(string name, int ageVal, bool infected, bool hasBiteMark, bool hasAbnormalHeartbeat, bool hasAbnormalPupil = false, bool hasChestRash = false)
         {
             survivorName = name;
             age = ageVal;
@@ -62,6 +64,11 @@ namespace ZombieCheckpoint.Survivors
             if (pupilSymptom != null)
             {
                 pupilSymptom.Initialize(hasAbnormalPupil);
+            }
+
+            if (rashSymptom != null)
+            {
+                rashSymptom.Initialize(hasChestRash);
             }
         }
 

@@ -32,6 +32,37 @@ namespace ZombieCheckpoint.Editor
             var outdoorPlane = GameObject.Find("Plane");
             if (outdoorPlane != null) outdoorPlane.SetActive(false);
 
+            // Reemplazar XR Origin con Hands Variant (Manos virtuales articuladas en vez de mandos plásticos)
+            var handsVariantPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/VRTemplateAssets/Prefabs/Setup/Complete XR Origin Set Up Hands Variant.prefab")
+                                  ?? AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Samples/XR Interaction Toolkit/3.5.1/Hands Interaction Demo/Prefabs/XR Origin Hands (XR Rig).prefab");
+
+            var existingRig = GameObject.Find("XR Origin (XR Rig)") ?? GameObject.Find("XR Origin Hands (XR Rig)") ?? GameObject.Find("Complete XR Origin Set Up Hands Variant");
+            if (existingRig != null && handsVariantPrefab != null)
+            {
+                Vector3 prevPos = existingRig.transform.position;
+                Quaternion prevRot = existingRig.transform.rotation;
+                Object.DestroyImmediate(existingRig);
+
+                var newRig = (GameObject)PrefabUtility.InstantiatePrefab(handsVariantPrefab);
+                newRig.name = "XR Origin Hands (XR Rig)";
+                newRig.transform.position = prevPos;
+                newRig.transform.rotation = prevRot;
+
+                ConfigureHandsRig(newRig);
+            }
+            else if (existingRig != null)
+            {
+                ConfigureHandsRig(existingRig);
+            }
+
+            // Asegurar Hands Permissions Manager para Meta Quest
+            var permPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/VRTemplateAssets/Prefabs/Setup/Hands Permissions Manager.prefab");
+            if (permPrefab != null && GameObject.Find("Hands Permissions Manager") == null)
+            {
+                var permObj = (GameObject)PrefabUtility.InstantiatePrefab(permPrefab);
+                permObj.name = "Hands Permissions Manager";
+            }
+
             // Ajustar iluminación ambiental y luz direccional para visibilidad interior nítida
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.40f, 0.42f, 0.48f, 1f);
@@ -71,6 +102,8 @@ namespace ZombieCheckpoint.Editor
             Material deskMat = new Material(urpShader) { name = "M_MonitorFrame", color = new Color(0.15f, 0.17f, 0.2f) };
             Material stampWoodMat = new Material(urpShader) { name = "M_StampWood", color = new Color(0.32f, 0.2f, 0.12f) };
             Material stampBrassMat = new Material(urpShader) { name = "M_StampBrass", color = new Color(0.72f, 0.62f, 0.35f) };
+            Material cyanMat = new Material(urpShader) { name = "M_CommandCyan", color = new Color(0.1f, 0.7f, 0.95f) };
+            Material amberMat = new Material(urpShader) { name = "M_CommandAmber", color = new Color(0.95f, 0.6f, 0.1f) };
 
             // --- 3. HABITACIÓN HOSPITALARIA (SALA DE AISLAMIENTO) ---
             GameObject roomRoot = new GameObject("Quarantine_Room");
@@ -159,7 +192,7 @@ namespace ZombieCheckpoint.Editor
             var signCanvas = signCanvasObj.AddComponent<Canvas>();
             signCanvas.renderMode = RenderMode.WorldSpace;
             var signTmp = signCanvasObj.AddComponent<TextMeshProUGUI>();
-            signTmp.text = "SALIDA ZONA SEGURA ➔";
+            signTmp.text = "SALIDA ZONA SEGURA >>";
             signTmp.fontSize = 26;
             signTmp.fontStyle = FontStyles.Bold;
             signTmp.color = Color.white;
@@ -312,6 +345,7 @@ namespace ZombieCheckpoint.Editor
             BiteMarkSymptom biteSymptom = null;
             HeartbeatSymptom heartbeat = null;
             PupilSymptom pupil = null;
+            RashSymptom rashSymptom = null;
 
             if (npcPrefab != null)
             {
@@ -376,6 +410,17 @@ namespace ZombieCheckpoint.Editor
                     if (pupil == null) pupil = head.gameObject.AddComponent<PupilSymptom>();
                     pupil.Initialize(false);
                 }
+                // Configuración de torso descubierto y ropa
+                var torsoCtrl = survivorRoot.AddComponent<TorsoClothingController>();
+                var mTorsoInit = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/npc_casual_set_00/Mesh/Mesh_Parts/npc_hmn_01m_torso1.fbx");
+                if (mTorsoInit != null) torsoCtrl.ConfigureBareTorso(mTorsoInit);
+
+                if (spine1 != null)
+                {
+                    rashSymptom = spine1.gameObject.GetComponent<RashSymptom>();
+                    if (rashSymptom == null) rashSymptom = spine1.gameObject.AddComponent<RashSymptom>();
+                    rashSymptom.Initialize(false);
+                }
             }
             else
             {
@@ -392,6 +437,8 @@ namespace ZombieCheckpoint.Editor
                 ?.SetValue(survivorModel, heartbeat);
             sModelType.GetField("pupilSymptom", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(survivorModel, pupil);
+            sModelType.GetField("rashSymptom", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(survivorModel, rashSymptom);
 
             // --- 8. LINTERNA 3D REAL (Del Asset Importado) ---
             var flashlightPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Flashlight/Model/Flashlight.prefab");
@@ -627,6 +674,17 @@ namespace ZombieCheckpoint.Editor
             typeof(DecisionButton).GetField("buttonVerdict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(decBtnRed, VerdictType.SendToQuarantine);
 
+            // Botones de comando de examen físico (Affordance y control ergonómico)
+            GameObject btnArms = CreateInspectionCommandButton(boothRoot, "Button_RaiseArms",
+                new Vector3(-0.38f, deskSurfaceY + 0.01f, 0.48f),
+                InspectionCommandType.ToggleRaiseArms, "<color=#33ccff>LEVANTE BRAZOS</color>\n<size=75%>[ V ]</size>",
+                cyanMat, deskMat);
+
+            GameObject btnTorso = CreateInspectionCommandButton(boothRoot, "Button_InspectTorso",
+                new Vector3(-0.24f, deskSurfaceY + 0.01f, 0.48f),
+                InspectionCommandType.ToggleExposeTorso, "<color=#ffaa33>DESCUBRA TORSO</color>\n<size=75%>[ C ]</size>",
+                amberMat, deskMat);
+
             // --- 12. MONITOR DE SIGNOS VITALES Y ECG DIEGÉTICO (EN ESCRITORIO) ---
             GameObject vitalMonitor = GameObject.CreatePrimitive(PrimitiveType.Cube);
             vitalMonitor.name = "Vital_Signs_Monitor";
@@ -758,6 +816,19 @@ namespace ZombieCheckpoint.Editor
                     ?.SetValue(flowMgr, woundM);
             }
 
+            var mTorsoPf = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/npc_casual_set_00/Mesh/Mesh_Parts/npc_hmn_01m_torso1.fbx");
+            var fTorsoPf = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/npc_casual_set_00/Mesh/Mesh_Parts/npc_hmn_01f_torso1.fbx");
+            if (mTorsoPf != null)
+            {
+                flowType.GetField("maleTorsoPrefab", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    ?.SetValue(flowMgr, mTorsoPf);
+            }
+            if (fTorsoPf != null)
+            {
+                flowType.GetField("femaleTorsoPrefab", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    ?.SetValue(flowMgr, fTorsoPf);
+            }
+
             // --- 14. SIMULADOR XR PARA DESARROLLO EN ESCRITORIO (PC / TECLADO + RATÓN) ---
             var simPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Samples/XR Interaction Toolkit/3.5.1/XR Device Simulator/XR Device Simulator.prefab");
             if (simPrefab != null)
@@ -850,6 +921,128 @@ namespace ZombieCheckpoint.Editor
                 ?.SetValue(stampTool, padCol);
 
             return stampRoot;
+        }
+
+        private static GameObject CreateInspectionCommandButton(GameObject parent, string name, Vector3 position, 
+            InspectionCommandType commandType, string labelText, Material capMat, Material baseMat)
+        {
+            GameObject btnRoot = new GameObject(name);
+            btnRoot.transform.SetParent(parent.transform);
+            btnRoot.transform.position = position;
+
+            // Base fija del pulsador
+            GameObject baseObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            baseObj.name = "Button_Base";
+            baseObj.transform.SetParent(btnRoot.transform, false);
+            baseObj.transform.localPosition = Vector3.zero;
+            baseObj.transform.localScale = new Vector3(0.09f, 0.012f, 0.09f);
+            baseObj.GetComponent<Renderer>().sharedMaterial = baseMat;
+            Object.DestroyImmediate(baseObj.GetComponent<Collider>());
+
+            // Capucha móvil pulsable
+            GameObject capObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            capObj.name = "Button_MovingCap";
+            capObj.transform.SetParent(btnRoot.transform, false);
+            capObj.transform.localPosition = new Vector3(0f, 0.016f, 0f);
+            capObj.transform.localScale = new Vector3(0.075f, 0.016f, 0.075f);
+            capObj.GetComponent<Renderer>().sharedMaterial = capMat;
+
+            var capCol = capObj.GetComponent<Collider>();
+            if (capCol != null) capCol.isTrigger = true;
+
+            // Canvas de texto informativo WorldSpace
+            GameObject canvasObj = new GameObject("ButtonCanvas");
+            canvasObj.transform.SetParent(btnRoot.transform, false);
+            canvasObj.transform.localPosition = new Vector3(0f, 0.032f, 0.052f);
+            canvasObj.transform.localRotation = Quaternion.Euler(60f, 0f, 0f);
+            canvasObj.transform.localScale = new Vector3(0.001f, 0.001f, 0.001f);
+
+            var canvas = canvasObj.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+
+            GameObject textObj = new GameObject("LabelText");
+            textObj.transform.SetParent(canvasObj.transform, false);
+            var tmp = textObj.AddComponent<TextMeshProUGUI>();
+            tmp.text = labelText;
+            tmp.fontSize = 18;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.color = Color.white;
+            tmp.alignment = TextAlignmentOptions.Center;
+            var rect = textObj.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(160, 55);
+
+            // Box collider en la raíz para permitir interacción física de mandos y raycast
+            var rootCol = btnRoot.AddComponent<BoxCollider>();
+            rootCol.center = new Vector3(0f, 0.016f, 0f);
+            rootCol.size = new Vector3(0.09f, 0.035f, 0.09f);
+
+            // Componentes de interacción
+            var interactable = btnRoot.AddComponent<XRSimpleInteractable>();
+            var cmdComp = btnRoot.AddComponent<InspectionCommandButton>();
+
+            cmdComp.Configure(commandType, capObj.transform);
+
+            return btnRoot;
+        }
+
+        private static void ConfigureHandsRig(GameObject rig)
+        {
+            if (rig == null) return;
+
+            // 1. Desactivar el salto en la cabina (elimina saltos accidentales al presionar B)
+            var jumpObj = rig.transform.Find("Locomotion/Jump");
+            if (jumpObj != null)
+            {
+                var jumpProvider = jumpObj.GetComponent<UnityEngine.XR.Interaction.Toolkit.Locomotion.Jump.JumpProvider>();
+                if (jumpProvider != null) jumpProvider.enabled = false;
+                jumpObj.gameObject.SetActive(false);
+            }
+
+            // 2. Asignar material opaco PBR de piel realista a todas las mallas de manos
+            Material skinMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/M_Hand_OpaqueSkin.mat");
+            if (skinMat == null)
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                skinMat = new Material(shader)
+                {
+                    name = "M_Hand_OpaqueSkin",
+                    color = new Color(0.86f, 0.73f, 0.63f, 1f)
+                };
+                skinMat.SetFloat("_Smoothness", 0.30f);
+                skinMat.SetFloat("_Surface", 0.0f);
+                skinMat.renderQueue = 2000;
+                AssetDatabase.CreateAsset(skinMat, "Assets/Materials/M_Hand_OpaqueSkin.mat");
+            }
+
+            foreach (var r in rig.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (r.gameObject.name == "LeftHand" || r.gameObject.name == "RightHand")
+                {
+                    r.sharedMaterials = new Material[] { skinMat };
+                }
+            }
+
+            // 3. Desactivar post-procesador de filtrado de manos para evitar amortiguamiento/lag en desktop
+            var filter = rig.GetComponentInChildren<UnityEngine.XR.Interaction.Toolkit.Samples.Hands.HandsOneEuroFilterPostProcessor>(true);
+            if (filter != null) filter.enabled = false;
+
+            // 4. Optimizar interactores Near-Far para respuesta instantánea 1:1
+            var nearFars = rig.GetComponentsInChildren<UnityEngine.XR.Interaction.Toolkit.Interactors.NearFarInteractor>(true);
+            foreach (var nf in nearFars)
+            {
+                var attach = nf.GetComponent<UnityEngine.XR.Interaction.Toolkit.Attachment.InteractionAttachController>();
+                var caster = nf.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.Casters.CurveInteractionCaster>();
+                if (attach != null)
+                {
+                    attach.angleStabilization = 0f;
+                    attach.positionStabilization = 0f;
+                    attach.smoothOffset = false;
+                }
+                if (caster != null)
+                {
+                    caster.enableStabilization = false;
+                }
+            }
         }
     }
 }

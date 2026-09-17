@@ -231,6 +231,7 @@ namespace ZombieCheckpoint.Tools
             {
                 EventBus.RequestSpatialAudio("uv_hum", transform.position, 0.65f);
             }
+            EventBus.TriggerFlashlightModeChanged(currentMode == FlashlightMode.Ultraviolet);
             Debug.Log($"[Linterna] 🔄 Modo cambiado a: {(currentMode == FlashlightMode.Ultraviolet ? "🟣 ULTRAVIOLETA (Luz Forense Wood 395nm)" : "⚪ LUZ BLANCA CLÍNICA")}");
         }
 
@@ -320,9 +321,13 @@ namespace ZombieCheckpoint.Tools
 
             if (!isOn || spotLight == null) return;
 
-            // Haz de luz proyectado hacia adelante
+            // Haz de luz proyectado hacia adelante (cono volumétrico tolerante con SphereCast)
             Ray ray = new Ray(spotLight.transform.position, spotLight.transform.forward);
-            if (Physics.Raycast(ray, out RaycastHit hit, beamRange, detectionLayer))
+            if (Physics.SphereCast(ray, 0.06f, out RaycastHit hit, beamRange, detectionLayer, QueryTriggerInteraction.Collide))
+            {
+                ApplyToTarget(hit.collider.gameObject);
+            }
+            else if (Physics.Raycast(ray, out hit, beamRange, detectionLayer, QueryTriggerInteraction.Collide))
             {
                 ApplyToTarget(hit.collider.gameObject);
             }

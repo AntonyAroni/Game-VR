@@ -32,6 +32,12 @@ namespace ZombieCheckpoint.HCI
         private FieldInfo rightStateField;
         private FieldInfo leftStateField;
 
+        // Soporte de reflexión para manos articuladas (XRSimulatedHandState)
+        private FieldInfo rightHandStateField;
+        private FieldInfo leftHandStateField;
+        private PropertyInfo handEulerProp;
+        private PropertyInfo handRotationProp;
+
         private object rightDeviceEnumValue;
         private object leftDeviceEnumValue;
         private object fpsEnumValue;
@@ -42,14 +48,17 @@ namespace ZombieCheckpoint.HCI
         private static readonly string HelpText = 
             "• <b>Mover Ratón:</b> Mover mano activa en 3D\n" +
             "• <b>Clic Izquierdo:</b> AGARRAR / USAR herramienta\n" +
-            "• <b>Alt Izq (o Ctrl) + Ratón:</b> GIRAR cabezal / rayo\n" +
+            "• <b>Alt Izq (o Ctrl) + Ratón:</b> GIRAR muñeca / rayo (1:1)\n" +
             "• <b>T:</b> Alternar inclinación mesa (35° / 0°)\n" +
             "• <b>Q / E:</b> Subir / Bajar inclinación rayo (±5°)\n" +
             "• <b>R:</b> Conmutar permanente Traslación / Rotación\n" +
             "• <b>Clic Derecho (Mantener):</b> Mirar con la cámara\n" +
             "• <b>Rueda Ratón:</b> Acercar / Alejar profundidad\n" +
             "• <b>Tab:</b> Alternar Mano Derecha / Izquierda\n" +
-            "• <b>H:</b> Ocultar / Mostrar esta ayuda";
+            "• <b>V (o B):</b> Ordenar Levantar / Bajar brazos (Civil)\n" +
+            "• <b>C:</b> Retirar / Levantar polo (Torso)\n" +
+            "• <b>H:</b> Conmutar Modo Mando / Manos (Simulator)\n" +
+            "• <b>F1 / O:</b> Ocultar / Mostrar esta ayuda";
 
         private GUIStyle boxStyle;
         private GUIStyle textStyle;
@@ -84,6 +93,16 @@ namespace ZombieCheckpoint.HCI
             leftEulerField = simType.GetField("m_LeftControllerEuler", BindingFlags.NonPublic | BindingFlags.Instance);
             rightStateField = simType.GetField("m_RightControllerState", BindingFlags.NonPublic | BindingFlags.Instance);
             leftStateField = simType.GetField("m_LeftControllerState", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            // Reflexión de manos articuladas
+            rightHandStateField = simType.GetField("m_RightHandState", BindingFlags.NonPublic | BindingFlags.Instance);
+            leftHandStateField = simType.GetField("m_LeftHandState", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (rightHandStateField != null)
+            {
+                Type handStateType = rightHandStateField.FieldType;
+                handEulerProp = handStateType.GetProperty("euler");
+                handRotationProp = handStateType.GetProperty("rotation");
+            }
         }
 
         private void Start()
@@ -91,6 +110,12 @@ namespace ZombieCheckpoint.HCI
             if (simulator == null) return;
 
             simulator.mouseTransformationMode = XRDeviceSimulator.TransformationMode.Translate;
+
+            // Sensibilidad óptima de rotación (1:1) para que el puntero/rayo responda con agilidad
+            simulator.mouseXRotateSensitivity = 1.0f;
+            simulator.mouseYRotateSensitivity = 1.0f;
+
+            OptimizeRigInteractors();
 
             if (autoTargetRightHandOnStart)
             {
@@ -100,6 +125,31 @@ namespace ZombieCheckpoint.HCI
             if (autoTiltToTableOnStart)
             {
                 SetControllerPitch(30f);
+            }
+        }
+
+        private void OptimizeRigInteractors()
+        {
+            // 1. Desactivar el filtro post-procesador de manos que causa latencia/amortiguamiento en PC
+            var filter = FindAnyObjectByType<UnityEngine.XR.Interaction.Toolkit.Samples.Hands.HandsOneEuroFilterPostProcessor>();
+            if (filter != null) filter.enabled = false;
+
+            // 2. Eliminar estabilización artificial excesiva del puntero para respuesta instantánea
+            var nearFars = FindObjectsByType<UnityEngine.XR.Interaction.Toolkit.Interactors.NearFarInteractor>(FindObjectsSortMode.None);
+            foreach (var nf in nearFars)
+            {
+                var attach = nf.GetComponent<UnityEngine.XR.Interaction.Toolkit.Attachment.InteractionAttachController>();
+                var caster = nf.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.Casters.CurveInteractionCaster>();
+                if (attach != null)
+                {
+                    attach.angleStabilization = 0f;
+                    attach.positionStabilization = 0f;
+                    attach.smoothOffset = false;
+                }
+                if (caster != null)
+                {
+                    caster.enableStabilization = false;
+                }
             }
         }
 
@@ -163,8 +213,8 @@ namespace ZombieCheckpoint.HCI
                     SetTargetDevice(isRightHandActive);
                 }
 
-                // 6. Alternar visibilidad de la ayuda con H
-                if (keyboard.hKey.wasPressedThisFrame)
+                // 6. Alternar visibilidad de la ayuda con F1, O o H
+                if (keyboard.f1Key.wasPressedThisFrame || keyboard.oKey.wasPressedThisFrame || keyboard.hKey.wasPressedThisFrame)
                 {
                     showHelpOverlay = !showHelpOverlay;
                 }
@@ -184,6 +234,7 @@ namespace ZombieCheckpoint.HCI
         {
             if (simulator == null) return;
 
+            // 1. Inclinación para modo Mandos
             FieldInfo eulerField = isRightHandActive ? rightEulerField : leftEulerField;
             FieldInfo stateField = isRightHandActive ? rightStateField : leftStateField;
 
@@ -204,12 +255,28 @@ namespace ZombieCheckpoint.HCI
                     }
                 }
             }
+
+            // 2. Inclinación para modo Manos Articuladas
+            FieldInfo handStateField = isRightHandActive ? rightHandStateField : leftHandStateField;
+            if (handStateField != null && handEulerProp != null && handRotationProp != null)
+            {
+                object handStateObj = handStateField.GetValue(simulator);
+                if (handStateObj != null)
+                {
+                    Vector3 hEuler = (Vector3)handEulerProp.GetValue(handStateObj, null);
+                    hEuler.x = targetPitch;
+                    handEulerProp.SetValue(handStateObj, hEuler, null);
+                    handRotationProp.SetValue(handStateObj, Quaternion.Euler(hEuler), null);
+                    handStateField.SetValue(simulator, handStateObj);
+                }
+            }
         }
 
         private void AdjustControllerPitch(float deltaPitch)
         {
             if (simulator == null) return;
 
+            // 1. Ajuste fino en modo Mandos
             FieldInfo eulerField = isRightHandActive ? rightEulerField : leftEulerField;
             FieldInfo stateField = isRightHandActive ? rightStateField : leftStateField;
 
@@ -230,11 +297,38 @@ namespace ZombieCheckpoint.HCI
                     }
                 }
             }
+
+            // 2. Ajuste fino en modo Manos Articuladas
+            FieldInfo handStateField = isRightHandActive ? rightHandStateField : leftHandStateField;
+            if (handStateField != null && handEulerProp != null && handRotationProp != null)
+            {
+                object handStateObj = handStateField.GetValue(simulator);
+                if (handStateObj != null)
+                {
+                    Vector3 hEuler = (Vector3)handEulerProp.GetValue(handStateObj, null);
+                    hEuler.x = Mathf.Clamp(hEuler.x + deltaPitch, -85f, 85f);
+                    handEulerProp.SetValue(handStateObj, hEuler, null);
+                    handRotationProp.SetValue(handStateObj, Quaternion.Euler(hEuler), null);
+                    handStateField.SetValue(simulator, handStateObj);
+                }
+            }
         }
 
         private float GetActiveControllerPitch()
         {
             if (simulator == null) return 0f;
+
+            FieldInfo handStateField = isRightHandActive ? rightHandStateField : leftHandStateField;
+            if (handStateField != null && handEulerProp != null)
+            {
+                object handStateObj = handStateField.GetValue(simulator);
+                if (handStateObj != null)
+                {
+                    Vector3 hEuler = (Vector3)handEulerProp.GetValue(handStateObj, null);
+                    if (Mathf.Abs(hEuler.x) > 0.01f) return hEuler.x;
+                }
+            }
+
             FieldInfo eulerField = isRightHandActive ? rightEulerField : leftEulerField;
             if (eulerField != null)
             {

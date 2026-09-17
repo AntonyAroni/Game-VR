@@ -39,6 +39,10 @@ namespace ZombieCheckpoint.Core
         private int roundNumber = 0;
         private int correctCount = 0;
 
+        [Header("Modelos de Torso Descubierto (Opcional)")]
+        [SerializeField] private GameObject maleTorsoPrefab;
+        [SerializeField] private GameObject femaleTorsoPrefab;
+
         // Listas de nombres creíbles para el pase sanitario
         private static readonly string[] MaleNames = new string[] {
             "Carlos Méndez", "Marcus Vance", "Mateo Silva", "John Miller", 
@@ -106,6 +110,16 @@ namespace ZombieCheckpoint.Core
             {
                 woundMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Abandoned_Asylum/Materials/M_InfectedWound.mat");
             }
+
+            if (maleTorsoPrefab == null)
+            {
+                maleTorsoPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/npc_casual_set_00/Mesh/Mesh_Parts/npc_hmn_01m_torso1.fbx");
+            }
+
+            if (femaleTorsoPrefab == null)
+            {
+                femaleTorsoPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/npc_casual_set_00/Mesh/Mesh_Parts/npc_hmn_01f_torso1.fbx");
+            }
 #endif
         }
 
@@ -154,6 +168,7 @@ namespace ZombieCheckpoint.Core
             bool hasBite = isInfected && (Random.value > 0.35f);
             bool hasHeartbeatAnomaly = isInfected && (!hasBite || Random.value > 0.3f);
             bool hasPupilAnomaly = isInfected && (Random.value > 0.3f);
+            bool hasChestRash = isInfected && (Random.value > 0.35f);
             bool documentExpired = !isInfected && (roundNumber % 3 == 0);
 
             // 3. Spawnear el nuevo modelo de civil
@@ -166,8 +181,8 @@ namespace ZombieCheckpoint.Core
             // 4. Configurar el perfil biológico del nuevo PNJ
             if (spawnedNpc != null)
             {
-                currentSurvivor = SetupSurvivorComponents(spawnedNpc, hasBite, hasHeartbeatAnomaly, hasPupilAnomaly);
-                currentSurvivor.SetupProfile(survivorName, survivorAge, isInfected, hasBite, hasHeartbeatAnomaly, hasPupilAnomaly);
+                currentSurvivor = SetupSurvivorComponents(spawnedNpc, hasBite, hasHeartbeatAnomaly, hasPupilAnomaly, hasChestRash, isFemale);
+                currentSurvivor.SetupProfile(survivorName, survivorAge, isInfected, hasBite, hasHeartbeatAnomaly, hasPupilAnomaly, hasChestRash);
 
                 // Aproximación a pie del civil hacia la ventanilla de la cabina
                 yield return StartCoroutine(AnimateArrivalRoutine(spawnedNpc.transform));
@@ -203,11 +218,11 @@ namespace ZombieCheckpoint.Core
             UpdateMonitorText($"<color=#33ccff>CIUDADANO #{roundNumber}: {survivorName.ToUpper()}</color>\n" +
                              "------------------------------------\n" +
                              "1. Ausculta el tórax con el estetoscopio.\n" +
-                             "2. Enciende la linterna para pupilas o piel.\n" +
+                             "2. Examina piel/ojos (V: Brazos | C: Torso).\n" +
                              "3. Compara el pase sanitario.\n" +
                              "4. Emite veredicto (Sello o Botón físico).");
 
-            Debug.Log($"[Checkpoint] Ronda #{roundNumber} iniciada con {survivorName} ({survivorAge} años). Infectado: {isInfected}. Mordedura: {hasBite}. Pulso: {hasHeartbeatAnomaly}. Pupilas: {hasPupilAnomaly}. Doc Vencido: {documentExpired}");
+            Debug.Log($"[Checkpoint] Ronda #{roundNumber} iniciada con {survivorName} ({survivorAge} años). Infectado: {isInfected}. Mordedura: {hasBite}. Pulso: {hasHeartbeatAnomaly}. Pupilas: {hasPupilAnomaly}. Erupción: {hasChestRash}. Doc Vencido: {documentExpired}");
         }
 
         private GameObject SpawnNextCivilian(out bool isFemale)
@@ -242,10 +257,17 @@ namespace ZombieCheckpoint.Core
             return fallback;
         }
 
-        private SurvivorModel SetupSurvivorComponents(GameObject npc, bool hasBite, bool hasHeartbeatAnomaly, bool hasPupilAnomaly)
+        private SurvivorModel SetupSurvivorComponents(GameObject npc, bool hasBite, bool hasHeartbeatAnomaly, bool hasPupilAnomaly, bool hasChestRash, bool isFemale)
         {
             var model = npc.GetOrAddComponent<SurvivorModel>();
             var humController = npc.GetOrAddComponent<SurvivorHumanoidController>();
+            var torsoController = npc.GetOrAddComponent<TorsoClothingController>();
+
+            var torsoPrefab = isFemale ? femaleTorsoPrefab : maleTorsoPrefab;
+            if (torsoPrefab != null)
+            {
+                torsoController.ConfigureBareTorso(torsoPrefab);
+            }
 
             Transform rightForeArm = null;
             Transform spine1 = null;
@@ -290,10 +312,14 @@ namespace ZombieCheckpoint.Core
             }
 
             HeartbeatSymptom heartbeat = null;
+            RashSymptom rash = null;
             if (spine1 != null)
             {
                 heartbeat = spine1.gameObject.GetOrAddComponent<HeartbeatSymptom>();
                 heartbeat.Initialize(hasHeartbeatAnomaly);
+
+                rash = spine1.gameObject.GetOrAddComponent<RashSymptom>();
+                rash.Initialize(hasChestRash);
             }
 
             PupilSymptom pupil = null;
@@ -317,6 +343,8 @@ namespace ZombieCheckpoint.Core
                 ?.SetValue(model, heartbeat);
             typeof(SurvivorModel).GetField("pupilSymptom", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(model, pupil);
+            typeof(SurvivorModel).GetField("rashSymptom", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(model, rash);
 
             return model;
         }

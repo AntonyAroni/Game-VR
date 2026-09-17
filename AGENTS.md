@@ -3,7 +3,7 @@
 **Curso:** Interacción Humano-Computador (IHC)  
 **Motor:** Unity 6 (6000.0.0f1) + XR Interaction Toolkit (XRI 3.x) + URP  
 **Espacio de trabajo:** `/home/antony/Documents/IHC/Game-VR`  
-**Última actualización:** 2026-09-15  
+**Última actualización:** 2026-09-17  
 
 ---
 
@@ -45,11 +45,13 @@ Dentro de `Assets/Scripts/`:
 ```text
 Assets/Scripts/
 ├── Core/
+│   ├── ComponentExtensions.cs   // Utilidades seguras frente a fake-null (GetOrAddComponent)
 │   ├── GameState.cs             // Enums (InspectionState, VerdictType, HandSide)
 │   ├── CheckpointFlowManager.cs // Control de ciclo de rondas, spawn de civiles y despacho
 │   └── EventBus.cs              // Bus de eventos desacoplado del juego
 ├── Decision/
-│   └── DecisionButton.cs        // Pulsadores físicos tangibles en el escritorio
+│   ├── DecisionButton.cs           // Pulsadores físicos de veredicto (Aprobado / Cuarentena)
+│   └── InspectionCommandButton.cs  // Pulsadores físicos de orden clínica (Levantar brazos / Torso)
 ├── Documents/
 │   ├── DocumentData.cs          // POCO con datos biográficos, vigencia y fotos
 │   ├── DocumentInteractable.cs  // XRGrabInteractable con soporte de sellado físico
@@ -65,12 +67,14 @@ Assets/Scripts/
 │   ├── IInspectableBodyPart.cs  // Contrato de extremidades examinables
 │   ├── BodyPartExaminer.cs      // Colisionador de inspección en huesos
 │   ├── SurvivorModel.cs         // Estado biológico, síntomas e identidad del PNJ
-│   ├── SurvivorHumanoidController.cs // Posturas naturales, respiración y giro de muñeca
+│   ├── SurvivorHumanoidController.cs // Posturas naturales, cinemática bimanual y pose clínica
+│   ├── TorsoClothingController.cs    // Desvestimiento/remangado del polo y torso descubierto
 │   └── Symptoms/
 │       ├── ISymptom.cs          // Contrato base para síntomas clínicos
 │       ├── BiteMarkSymptom.cs   // Mordeduras de infectado en antebrazo
 │       ├── HeartbeatSymptom.cs  // Latido cardíaco (auscultación en Spine1)
-│       └── PupilSymptom.cs      // Reflejo fotomotor pupilar (linterna en Head)
+│       ├── PupilSymptom.cs      // Reflejo fotomotor pupilar (linterna en Head)
+│       └── RashSymptom.cs       // Erupción cutánea y petequias fluorescentes bajo UV
 ├── Tools/
 │   ├── IInspectionTool.cs       // Contrato base para herramientas diagnósticas
 │   ├── FlashlightTool.cs        // Linterna clínica con cono volumétrico y switch mecánico
@@ -125,7 +129,10 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 | **Desplazarse en la Cabina** | Teclas **W, A, S, D** | Movimiento continuo en el espacio del puesto de control. |
 | **Alternar Modo Linterna (Blanca / UV)** | Tecla **U** o **Clic Central** | Conmuta entre Luz Clínica Normal y Luz Forense Ultravioleta 395nm (Lámpara de Wood). |
 | **Alternar Mano Activa** | Tecla **Tab** | Cambia el control entre Mano Derecha y Mano Izquierda. |
-| **Mostrar / Ocultar Ayuda HUD** | Tecla **H** | Despliega una tarjeta semi-transparente con los controles y el ángulo actual del cabezal. |
+| **Ordenar Levantar / Bajar Brazos** | Tecla **V** (o **B**) | Ordena al civil elevar brazos a $82^\circ$ simétricos para examinar axilas y tórax. Evita conflicto con el botón secundario del simulador. |
+| **Retirar / Levantar Polo (Torso)** | Tecla **C** | Descubre el torso del civil revelando erupciones cutáneas o marcas. |
+| **Conmutar Modo Mando / Manos** | Tecla **H** | Alterna entre visualización y simulación de Mandos y Manos Articuladas en `XR Device Simulator`. |
+| **Mostrar / Ocultar Ayuda HUD** | Teclas **F1** / **O** | Despliega una tarjeta semi-transparente con los controles y el ángulo actual de la muñeca. |
 
 ---
 
@@ -170,13 +177,52 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 * **Alternancia de Modo Lumínico:** Conmutación entre Luz Blanca Clínica y Lámpara de Wood Ultravioleta a $395\text{ nm}$ con tecla **U** o clic central.
 * **Sello Holográfico de Seguridad:** El pasaporte sanitario incorpora una marca de agua forense invisible a simple vista. Bajo radiación UV revela el sello oficial verde brillante (*MINISTERIO DE SALUD - BIO-SEGURIDAD*) o la advertencia carmesí de falsificación en documentos adulterados (*COPIA IRREGULAR*).
 
+### I. Robustez de Componentes y Manejo Seguro de "Fake-Null" (PR #1)
+* **Utilidad `ComponentExtensions.GetOrAddComponent`:** Soluciona el fallo silente del operador C# `??` con `UnityEngine.Object`, asegurando que `GetComponent()` inexistente devuelva o añada el componente de forma transparente y robusta.
+* **Refactorización de Búsqueda Segura:** Implementación de `TryGetComponent` en `XRSimulatorDesktopEnhancer.cs`, `FlashlightTool.cs`, `SurvivorHumanoidController.cs` y `CheckpointFlowManager.cs`.
+* **Higiene de Versionado:** Exclusión de carpetas personales de IDE (`.vscode/`, `*.slnx`) en `.gitignore`.
+
+### J. Manos Virtuales Articuladas y XR Hands (`Complete XR Origin Set Up Hands Variant`)
+* **Sustitución del Rig de Mandos:** Migración del rig base a `Complete XR Origin Set Up Hands Variant.prefab` (GUID `77e7c27b2c5525e4aa8cc9f99d654486`) procedente de la plantilla oficial de RV de Unity.
+* **Gestión Bimodal Automática (`XRInputModalityManager`):** Conmuta de manera transparente entre manos articuladas con tracking de dedos esquelético (`LeftHandQuestVisual` y `RightHandQuestVisual`) y mandos estándar con retroalimentación háptica.
+* **Permisos Meta Quest:** Integración en escena de `Hands Permissions Manager.prefab` para activar automáticamente el subsistema OpenXR de seguimiento de manos en visores Meta Quest sin fricción de configuración.
+
+### K. Cinemática Bimanual y Postura de Inspección Torácica (`SurvivorHumanoidController.cs`)
+* **Manipulación Bimanual de Muñecas:** Implementación de `XRGrabInteractable` independientes para ambas manos (`rightHandGrab` y `leftHandGrab`) con tracking cinemático suave y rotación axial de antebrazos.
+* **Pose de Inspección Clínica ("Levante los brazos"):** Cinemática guiada que eleva los brazos del sospechoso a $85^\circ$ con separación de codos, despejando completamente el campo visual de las axilas, costados y región pectoral para auscultación torácica y búsqueda de mordeduras o anomalías.
+* **Comando y Acceso Rápido:** Accionable físicamente desde el mostrador (Botón Cian) o tecla de teclado **B** en pruebas de escritorio.
+
+### L. Desvestimiento / Remangado del Polo y Torso Anatómico (`TorsoClothingController.cs`)
+* **Exposición Anatómica del Tórax:** Alterna dinámicamente entre la ropa superior del PNJ (`npc_hmn_..._top`) y la malla del torso descubierto (`npc_hmn_01m_torso1.fbx` / `npc_hmn_01f_torso1.fbx`), vinculando automáticamente los huesos del `SkinnedMeshRenderer` al rig activo del personaje.
+* **Affordance Tangible:** Incluye asa esférica interactiva en el dobladillo inferior del polo (`XRGrabInteractable`) que permite levantarlo tirando hacia arriba en VR.
+* **Audio y Atajo:** Emisión de audio procedural de tela (`cloth_rustle` a $340\text{ Hz}$) y atajo de teclado **C**.
+
+### M. Síntoma Dermatológico: Erupción Infecciosa / Petequias (`RashSymptom.cs`)
+* **Manifestación Clínica:** Generación procedural de máculas eritematosas y petequias inflamatorias sobre el esternón y las costillas, invisibles mientras el sujeto lleva puesta la camisa y reveladas al descubrir el torso.
+* **Respuesta Fotónica Dual:** Bajo luz blanca normal se evidencia la lesión dérmica; bajo el haz UV de la linterna clínica (395nm), la erupción reacciona emitiendo fluorescencia verde vítrea esmeralda patognomónica de la cepa vírica.
+
+### N. Pulsadores Diegéticos de Mesa para Comandos Clínicos (`InspectionCommandButton.cs`)
+* **Botones Físicos en Mostrador:** Pulsador Cian (`Button_RaiseArms`) y Pulsador Ámbar (`Button_InspectTorso`) situados al alcance ergonómico de la mano izquierda en la mesa de control.
+* **Feedback Multimodal:** Carrera mecánica de descenso de $18\text{ mm}$, sonido de clic de contacto (`button_click`), vibración háptica bimanual y etiquetas legibles en Canvas WorldSpace con acceso directo `[ V ]` y `[ C ]`.
+
+### O. Auditoría Integral y Resolución de Bugs Críticos
+* **Eliminación de Salto Accidental en Cabina:** Desactivación y aislamiento de `JumpProvider` y el GameObject `Locomotion/Jump` en el rig XR instanciado. Elimina el salto accidental que ocurría al presionar la tecla B (SecondaryButton del simulador Quest).
+* **Simetría Anatómica Exacta de Brazos (`SurvivorHumanoidController.cs`):** Identificación del espejo de coordenadas en el hueso `RightShoulder` del rig humanoide (`npc_casual_set_00`). Al unificar las rotaciones locales a $(355.1^\circ, 351.9^\circ, 298.1^\circ)$ para ambos brazos, ambos se elevan de forma idéntica a $82^\circ$ simétricos en espacio de mundo.
+* **Eliminación de Translucidez en Manos Virtuales:** Reemplazo del shader translúcido `Shader Graphs/Unity_Hand_Noise` y pase `Unlit/DepthOnly` por el material PBR opaco `M_Hand_OpaqueSkin.mat` (`Universal Render Pipeline/Lit`) con tono de piel natural y renderQueue 2000 (Opaque).
+* **Sensibilidad y Recorrido Ágil del Puntero / Rayo (`XRSimulatorDesktopEnhancer.cs`):** 
+  - Soporte de reflexión dinámico para `XRSimulatedHandState` (`euler` y `rotation`), permitiendo inclinación de mesa (tecla **T**) y ajuste fino (**Q / E**) tanto en mandos como en manos articuladas.
+  - Incremento de sensibilidad de rotación con ratón de $0.2$ a $1.0$ (mapeo natural 1:1).
+  - Desactivación de `HandsOneEuroFilterPostProcessor` y anulación de la estabilización artificial en `CurveInteractionCaster` y `InteractionAttachController` durante pruebas en PC para eliminar latencias.
+* **Detección Lumínica Tolerante (`FlashlightTool.cs`):** Integración de `Physics.SphereCast` ($r = 0.06\text{ m}$) con `QueryTriggerInteraction.Collide` para asegurar la detección de pupilas y erupciones torácicas sin depender de un rayo infinitesimal.
+* **Refresco Robusto de Auscultación (`StethoscopeTool.cs`):** Validación de referencias vivas frente a objetos destruidos entre rondas para asegurar auscultación continua en cada nuevo civil.
+
 ---
 
 ## 7. Hoja de Ruta de Siguientes Pasos (Próximas Mejoras de Inmersión)
 
 1. **Respuestas de Voz y Audio Diegético del Civil:**
-   - Respuestas breves de agradecimiento o pánico al escuchar la decisión.
+   - Respuestas breves de agradecimiento o pánico al escuchar la decisión o al recibir las órdenes ("¡Sí, oficial!", "¡No me haga daño!").
 2. **Sistema de Escaneo de Equipaje / Maletín Forense:**
-   - Bandeja de inspección donde los civiles colocan pertenencias personales o frascos biológicos.
+   - Bandeja de inspección donde los civiles colocan pertenencias personales, fármacos o frascos biológicos sospechosos.
 3. **Optimización Perfilada para Meta Quest Standalone:**
-   - Validación de tasa de cuadros a 72/90 FPS fijos y draw calls reducidos.
+   - Validación de tasa de cuadros a 72/90 FPS fijos y minimización de draw calls con batching estático y GPU instancing.

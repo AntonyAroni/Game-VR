@@ -39,14 +39,23 @@ namespace ZombieCheckpoint.Survivors
 
         [Header("Inspección de Muñeca en VR")]
         [SerializeField] private XRGrabInteractable rightHandGrab;
+        [SerializeField] private XRGrabInteractable leftHandGrab;
         [SerializeField] private BiteMarkSymptom biteSymptom;
         [SerializeField] private HeartbeatSymptom heartbeatSymptom;
+
+        [Header("Pose de Inspección (Brazos Elevados)")]
+        [SerializeField] private bool isInspectionPose = false;
 
         private Quaternion rightArmRestRot;
         private Quaternion leftArmRestRot;
         private Quaternion rightForeArmRestRot;
         private Quaternion leftForeArmRestRot;
         private Quaternion spineRestRot;
+
+        private Quaternion rightArmInspectRot;
+        private Quaternion leftArmInspectRot;
+        private Quaternion rightForeArmInspectRot;
+        private Quaternion leftForeArmInspectRot;
 
         // Caché de orientación relativa a la raíz para cinemática procedural
         private Vector3 hipsRestLocalPos;
@@ -66,7 +75,11 @@ namespace ZombieCheckpoint.Survivors
         private float lastSinVal = 0f;
 
         private bool isRightHandGrabbed = false;
-        private Transform grabbingInteractor;
+        private Transform rightGrabbingInteractor;
+        private bool isLeftHandGrabbed = false;
+        private Transform leftGrabbingInteractor;
+
+        public bool IsInspectionPose => isInspectionPose;
 
         private void Awake()
         {
@@ -103,11 +116,24 @@ namespace ZombieCheckpoint.Survivors
 
         private void CacheRestRotations()
         {
-            // Postura anatómica de reposo natural (brazos descansando abajo a los lados)
-            rightArmRestRot = Quaternion.Euler(0f, 10f, 68f);
-            leftArmRestRot = Quaternion.Euler(0f, -10f, -68f);
-            rightForeArmRestRot = Quaternion.Euler(15f, 10f, 0f);
-            leftForeArmRestRot = Quaternion.Euler(15f, -10f, 0f);
+            // Postura anatómica de reposo natural (brazos descansando abajo a los lados de forma simétrica)
+            // Nota de rig: RightShoulder ya tiene rotación de espejo (0, 180, 186.73), por lo que ambos brazos
+            // comparten la misma rotación local para lograr simetría exacta en espacio de mundo.
+            rightArmRestRot = Quaternion.Euler(5.1f, 352.8f, 70.7f);
+            leftArmRestRot = Quaternion.Euler(5.1f, 352.8f, 70.7f);
+            rightForeArmRestRot = Quaternion.Euler(0f, 15f, 0f);
+            leftForeArmRestRot = Quaternion.Euler(0f, 15f, 0f);
+
+            // Postura de inspección clínica: ambos brazos elevados a ~82° exponiendo axilas, costados y región pectoral
+            rightArmInspectRot = Quaternion.Euler(355.1f, 351.9f, 298.1f);
+            leftArmInspectRot = Quaternion.Euler(355.1f, 351.9f, 298.1f);
+            rightForeArmInspectRot = Quaternion.Euler(0f, 30f, 0f);
+            leftForeArmInspectRot = Quaternion.Euler(0f, 30f, 0f);
+
+            if (leftArm != null) leftArm.localRotation = leftArmRestRot;
+            if (rightArm != null) rightArm.localRotation = rightArmRestRot;
+            if (leftForeArm != null) leftForeArm.localRotation = leftForeArmRestRot;
+            if (rightForeArm != null) rightForeArm.localRotation = rightForeArmRestRot;
 
             if (spine1Bone != null) spineRestRot = spine1Bone.localRotation;
 
@@ -135,11 +161,27 @@ namespace ZombieCheckpoint.Survivors
             }
         }
 
+        /// <summary>
+        /// Activa o desactiva la postura médica donde el civil levanta ambos brazos.
+        /// Facilita la auscultación torácica y la inspección visual de marcas en axilas y costados.
+        /// </summary>
+        public void SetInspectionPose(bool raised)
+        {
+            isInspectionPose = raised;
+            EventBus.RequestHapticImpulse(HandSide.Both, 0.25f, 0.1f);
+            Debug.Log($"[Inspección] Pose de inspección (brazos elevados): {isInspectionPose}");
+        }
+
+        public void ToggleInspectionPose()
+        {
+            SetInspectionPose(!isInspectionPose);
+        }
+
         private void SetupInteractionComponents()
         {
+            // Mano derecha
             if (rightHand != null)
             {
-                // Colisionador para la mano/muñeca
                 var col = rightHand.GetComponent<Collider>();
                 if (col == null)
                 {
@@ -157,6 +199,29 @@ namespace ZombieCheckpoint.Survivors
                 if (rightHandGrab == null)
                 {
                     rightHandGrab = rightHand.gameObject.GetOrAddComponent<XRGrabInteractable>();
+                }
+            }
+
+            // Mano izquierda
+            if (leftHand != null)
+            {
+                var col = leftHand.GetComponent<Collider>();
+                if (col == null)
+                {
+                    var sphere = leftHand.gameObject.AddComponent<SphereCollider>();
+                    sphere.radius = 0.08f;
+                }
+
+                var rb = leftHand.GetComponent<Rigidbody>();
+                if (rb == null)
+                {
+                    rb = leftHand.gameObject.AddComponent<Rigidbody>();
+                    rb.isKinematic = true;
+                }
+
+                if (leftHandGrab == null)
+                {
+                    leftHandGrab = leftHand.gameObject.GetOrAddComponent<XRGrabInteractable>();
                 }
             }
 
@@ -207,8 +272,13 @@ namespace ZombieCheckpoint.Survivors
         {
             if (rightHandGrab != null)
             {
-                rightHandGrab.selectEntered.AddListener(OnHandGrabbed);
-                rightHandGrab.selectExited.AddListener(OnHandReleased);
+                rightHandGrab.selectEntered.AddListener(OnRightHandGrabbed);
+                rightHandGrab.selectExited.AddListener(OnRightHandReleased);
+            }
+            if (leftHandGrab != null)
+            {
+                leftHandGrab.selectEntered.AddListener(OnLeftHandGrabbed);
+                leftHandGrab.selectExited.AddListener(OnLeftHandReleased);
             }
         }
 
@@ -216,23 +286,52 @@ namespace ZombieCheckpoint.Survivors
         {
             if (rightHandGrab != null)
             {
-                rightHandGrab.selectEntered.RemoveListener(OnHandGrabbed);
-                rightHandGrab.selectExited.RemoveListener(OnHandReleased);
+                rightHandGrab.selectEntered.RemoveListener(OnRightHandGrabbed);
+                rightHandGrab.selectExited.RemoveListener(OnRightHandReleased);
+            }
+            if (leftHandGrab != null)
+            {
+                leftHandGrab.selectEntered.RemoveListener(OnLeftHandGrabbed);
+                leftHandGrab.selectExited.RemoveListener(OnLeftHandReleased);
             }
         }
 
-        private void OnHandGrabbed(SelectEnterEventArgs args)
+        private void OnRightHandGrabbed(SelectEnterEventArgs args)
         {
             isRightHandGrabbed = true;
-            grabbingInteractor = args.interactorObject.transform;
-            EventBus.RequestHapticImpulse(HandSide.Both, 0.3f, 0.08f);
-            Debug.Log("[Inspección] Tomaste el brazo del superviviente para examinar la piel.");
+            rightGrabbingInteractor = args.interactorObject.transform;
+            EventBus.RequestHapticImpulse(HandSide.Right, 0.3f, 0.08f);
+            Debug.Log("[Inspección] Tomaste el antebrazo derecho del superviviente para examinar la piel.");
         }
 
-        private void OnHandReleased(SelectExitEventArgs args)
+        private void OnRightHandReleased(SelectExitEventArgs args)
         {
             isRightHandGrabbed = false;
-            grabbingInteractor = null;
+            rightGrabbingInteractor = null;
+        }
+
+        private void OnLeftHandGrabbed(SelectEnterEventArgs args)
+        {
+            isLeftHandGrabbed = true;
+            leftGrabbingInteractor = args.interactorObject.transform;
+            EventBus.RequestHapticImpulse(HandSide.Left, 0.3f, 0.08f);
+            Debug.Log("[Inspección] Tomaste el antebrazo izquierdo del superviviente.");
+        }
+
+        private void OnLeftHandReleased(SelectExitEventArgs args)
+        {
+            isLeftHandGrabbed = false;
+            leftGrabbingInteractor = null;
+        }
+
+        private void Update()
+        {
+            // Atajo de teclado ergonómico para PC/Desktop (Tecla V para Valoración/Brazos o B)
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard != null && (keyboard.vKey.wasPressedThisFrame || keyboard.bKey.wasPressedThisFrame))
+            {
+                ToggleInspectionPose();
+            }
         }
 
         private void LateUpdate()
@@ -289,7 +388,7 @@ namespace ZombieCheckpoint.Survivors
                 }
 
                 // C. Balanceo pendular de brazos en contrafase
-                if (leftArm != null)
+                if (leftArm != null && !isLeftHandGrabbed)
                 {
                     leftArm.rotation = transform.rotation * Quaternion.AngleAxis(sin * 16f, Vector3.right) * leftArmRelRot;
                 }
@@ -297,7 +396,7 @@ namespace ZombieCheckpoint.Survivors
                 {
                     rightArm.rotation = transform.rotation * Quaternion.AngleAxis(-sin * 16f, Vector3.right) * rightArmRelRot;
                 }
-                if (leftForeArm != null) leftForeArm.localRotation = leftForeArmRestRot;
+                if (leftForeArm != null && !isLeftHandGrabbed) leftForeArm.localRotation = leftForeArmRestRot;
                 if (rightForeArm != null && !isRightHandGrabbed) rightForeArm.localRotation = rightForeArmRestRot;
             }
             else
@@ -313,23 +412,43 @@ namespace ZombieCheckpoint.Survivors
                 if (leftLeg != null) leftLeg.rotation = Quaternion.Slerp(leftLeg.rotation, transform.rotation * leftLegRelRot, Time.deltaTime * 6f);
                 if (rightLeg != null) rightLeg.rotation = Quaternion.Slerp(rightLeg.rotation, transform.rotation * rightLegRelRot, Time.deltaTime * 6f);
 
-                // Brazo izquierdo en reposo al costado
-                if (leftArm != null) leftArm.localRotation = leftArmRestRot;
-                if (leftForeArm != null) leftForeArm.localRotation = leftForeArmRestRot;
-
-                // Brazo derecho: reposo vs manipulación directa por el jugador
-                if (rightArm != null && rightForeArm != null)
+                // --- MANIPULACIÓN DEL BRAZO IZQUIERDO ---
+                if (leftArm != null && leftForeArm != null)
                 {
-                    if (isRightHandGrabbed && grabbingInteractor != null)
+                    if (isLeftHandGrabbed && leftGrabbingInteractor != null)
                     {
-                        Vector3 dirToHand = (grabbingInteractor.position - rightArm.position).normalized;
-                        rightArm.rotation = Quaternion.LookRotation(dirToHand, Vector3.up) * Quaternion.Euler(0f, 90f, 0f);
-                        rightForeArm.localRotation = Quaternion.Euler(45f, 90f, 0f);
+                        Vector3 dirToHand = (leftGrabbingInteractor.position - leftArm.position).normalized;
+                        leftArm.rotation = Quaternion.LookRotation(dirToHand, Vector3.up) * Quaternion.Euler(0f, -90f, 0f);
+                        float dist = Vector3.Distance(leftArm.position, leftGrabbingInteractor.position);
+                        float bend = Mathf.Clamp((0.55f - dist) * 110f, 15f, 95f);
+                        leftForeArm.localRotation = Quaternion.Euler(bend, -90f, 0f);
                     }
                     else
                     {
-                        rightArm.localRotation = Quaternion.Slerp(rightArm.localRotation, rightArmRestRot, Time.deltaTime * 6f);
-                        rightForeArm.localRotation = Quaternion.Slerp(rightForeArm.localRotation, rightForeArmRestRot, Time.deltaTime * 6f);
+                        Quaternion targetArm = isInspectionPose ? leftArmInspectRot : leftArmRestRot;
+                        Quaternion targetFore = isInspectionPose ? leftForeArmInspectRot : leftForeArmRestRot;
+                        leftArm.localRotation = Quaternion.Slerp(leftArm.localRotation, targetArm, Time.deltaTime * 5f);
+                        leftForeArm.localRotation = Quaternion.Slerp(leftForeArm.localRotation, targetFore, Time.deltaTime * 5f);
+                    }
+                }
+
+                // --- MANIPULACIÓN DEL BRAZO DERECHO ---
+                if (rightArm != null && rightForeArm != null)
+                {
+                    if (isRightHandGrabbed && rightGrabbingInteractor != null)
+                    {
+                        Vector3 dirToHand = (rightGrabbingInteractor.position - rightArm.position).normalized;
+                        rightArm.rotation = Quaternion.LookRotation(dirToHand, Vector3.up) * Quaternion.Euler(0f, 90f, 0f);
+                        float dist = Vector3.Distance(rightArm.position, rightGrabbingInteractor.position);
+                        float bend = Mathf.Clamp((0.55f - dist) * 110f, 15f, 95f);
+                        rightForeArm.localRotation = Quaternion.Euler(bend, 90f, 0f);
+                    }
+                    else
+                    {
+                        Quaternion targetArm = isInspectionPose ? rightArmInspectRot : rightArmRestRot;
+                        Quaternion targetFore = isInspectionPose ? rightForeArmInspectRot : rightForeArmRestRot;
+                        rightArm.localRotation = Quaternion.Slerp(rightArm.localRotation, targetArm, Time.deltaTime * 5f);
+                        rightForeArm.localRotation = Quaternion.Slerp(rightForeArm.localRotation, targetFore, Time.deltaTime * 5f);
                     }
                 }
             }

@@ -73,7 +73,12 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             pupil.transform.localRotation = Quaternion.identity;
             pupil.transform.localScale = basePupilScale;
 
-            Destroy(pupil.GetComponent<Collider>());
+            var col = pupil.GetComponent<Collider>();
+            if (col != null)
+            {
+                if (Application.isPlaying) Destroy(col);
+                else DestroyImmediate(col);
+            }
 
             if (pupilMaterial == null)
             {

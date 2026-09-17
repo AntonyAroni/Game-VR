@@ -51,6 +51,7 @@ namespace ZombieCheckpoint.HCI
             EnsureProceduralSound("footstep_heavy", GenerateFootstepClip(85f, 0.16f));
             EnsureProceduralSound("uv_hum", GenerateUVHumClip(0.35f));
             EnsureProceduralSound("uv_switch", GenerateClickClip(2400f, 0.035f));
+            EnsureProceduralSound("cloth_rustle", GenerateClothRustleClip(0.35f));
         }
 
         private void OnEnable()
@@ -295,6 +296,26 @@ namespace ZombieCheckpoint.HCI
             }
 
             AudioClip clip = AudioClip.Create("proc_uv_hum", samplesCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private AudioClip GenerateClothRustleClip(float duration)
+        {
+            int sampleRate = 44100;
+            int samplesCount = (int)(sampleRate * duration);
+            float[] samples = new float[samplesCount];
+
+            for (int i = 0; i < samplesCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                float envelope = Mathf.Sin(Mathf.PI * (t / duration));
+                float noise = (UnityEngine.Random.value * 2f - 1f) * 0.45f;
+                float softSwoosh = Mathf.Sin(2f * Mathf.PI * 340f * t) * 0.15f;
+                samples[i] = (noise + softSwoosh) * envelope * 0.5f;
+            }
+
+            AudioClip clip = AudioClip.Create("proc_cloth_rustle", samplesCount, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }

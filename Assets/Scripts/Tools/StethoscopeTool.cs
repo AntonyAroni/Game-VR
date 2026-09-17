@@ -79,9 +79,20 @@ namespace ZombieCheckpoint.Tools
             if (!IsGrabbed) return;
 
             // Comprobación de proximidad robusta contra cualquier objetivo cardíaco en escena
-            if (sceneHeartbeatSymptoms == null || sceneHeartbeatSymptoms.Length == 0)
+            bool needsRefresh = (sceneHeartbeatSymptoms == null || sceneHeartbeatSymptoms.Length == 0);
+            if (!needsRefresh)
             {
-                sceneHeartbeatSymptoms = FindObjectsByType<HeartbeatSymptom>();
+                bool hasLiveElement = false;
+                for (int i = 0; i < sceneHeartbeatSymptoms.Length; i++)
+                {
+                    if (sceneHeartbeatSymptoms[i] != null) { hasLiveElement = true; break; }
+                }
+                needsRefresh = !hasLiveElement;
+            }
+
+            if (needsRefresh)
+            {
+                sceneHeartbeatSymptoms = FindObjectsByType<HeartbeatSymptom>(FindObjectsSortMode.None);
             }
 
             HeartbeatSymptom closest = null;

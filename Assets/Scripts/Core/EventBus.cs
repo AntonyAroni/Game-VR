@@ -56,6 +56,11 @@ namespace ZombieCheckpoint.Core
         public static void TriggerHeartbeatAuscultation(bool isAuscultating, float targetBpm, bool isAbnormal)
             => OnHeartbeatAuscultationStateChanged?.Invoke(isAuscultating, targetBpm, isAbnormal);
 
+        // --- Eventos de Linterna y Modo Forense UV ---
+        public static event Action<bool> OnFlashlightModeChanged; // (isUvActive)
+        public static void TriggerFlashlightModeChanged(bool isUvActive)
+            => OnFlashlightModeChanged?.Invoke(isUvActive);
+
         /// <summary>
         /// Limpia todas las suscripciones para evitar fugas de memoria al recargar escenas.
         /// </summary>
@@ -70,6 +75,7 @@ namespace ZombieCheckpoint.Core
             OnHapticImpulseRequested = null;
             OnSpatialAudioRequested = null;
             OnHeartbeatAuscultationStateChanged = null;
+            OnFlashlightModeChanged = null;
         }
     }
 }
