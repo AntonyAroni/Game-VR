@@ -40,8 +40,11 @@ namespace ZombieCheckpoint.HCI.Gestures
         [Header("Vocabulario Gestual")]
         [SerializeField] private List<HandGestureDefinition> definitions = new List<HandGestureDefinition>();
 
-        /// <summary>Progreso de confirmación del gesto en curso: (mano, gesto, 0..1).</summary>
-        public event Action<HandSide, HandGestureType, float> GestureProgressChanged;
+        /// <summary>
+        /// Estado visualizable de una mano en cada evaluación: gesto candidato, progreso de
+        /// confirmación y pose de la palma, para anclar la retroalimentación sobre la mano real.
+        /// </summary>
+        public event Action<HandGestureFeedback> GestureFeedbackUpdated;
 
         /// <summary>Gesto confirmado tras completar su dwell: (mano, gesto, posición de la palma).</summary>
         public event Action<HandSide, HandGestureType, Vector3> GesturePerformed;
@@ -119,10 +122,19 @@ namespace ZombieCheckpoint.HCI.Gestures
             if (!moduleEnabled || gesture == HandGestureType.None) return;
 
             Vector3 origin = headTransform != null
-                ? headTransform.position + headTransform.forward * 0.35f
+                ? headTransform.position + headTransform.forward * 0.35f + headTransform.right * (side == HandSide.Left ? -0.18f : 0.18f)
                 : transform.position;
 
-            GestureProgressChanged?.Invoke(side, gesture, 1f);
+            // Muestra sintética para que el anillo de confirmación aparezca donde estaría la palma.
+            var syntheticSample = new HandGestureSample
+            {
+                Side = side,
+                PalmPosition = origin,
+                PalmNormal = headTransform != null ? -headTransform.forward : Vector3.up,
+                PalmForward = Vector3.up
+            };
+
+            PublishFeedback(side, gesture, gesture.ToString(), 1f, true, syntheticSample);
             GesturePerformed?.Invoke(side, gesture, origin);
             EventBus.TriggerHandGesturePerformed(side, gesture.ToString());
         }
@@ -177,9 +189,17 @@ namespace ZombieCheckpoint.HCI.Gestures
 
         private void EvaluateHand(XRHand hand, HandSide side, HandDwellState state, float now)
         {
-            if (!TryBuildSample(hand, side, out HandGestureSample sample) || !IsInCommandZone(sample))
+            if (!TryBuildSample(hand, side, out HandGestureSample sample))
             {
                 ClearDwell(side, state);
+                PublishFeedback(side, HandGestureType.None, string.Empty, 0f, false, sample);
+                return;
+            }
+
+            if (!IsInCommandZone(sample))
+            {
+                ClearDwell(side, state);
+                PublishFeedback(side, HandGestureType.None, string.Empty, 0f, true, sample);
                 return;
             }
 
@@ -187,6 +207,7 @@ namespace ZombieCheckpoint.HCI.Gestures
             if (match == null)
             {
                 ClearDwell(side, state);
+                PublishFeedback(side, HandGestureType.None, string.Empty, 0f, true, sample);
                 return;
             }
 
@@ -200,13 +221,12 @@ namespace ZombieCheckpoint.HCI.Gestures
             // Bloqueo de repetición: el mismo gesto no vuelve a dispararse hasta deshacerlo.
             if (state.AwaitingRelease && match.Type == state.LastFired)
             {
-                GestureProgressChanged?.Invoke(side, match.Type, 1f);
+                PublishFeedback(side, match.Type, match.DisplayName, 1f, true, sample);
                 return;
             }
 
             float progress = Mathf.Clamp01((now - state.HoldStartTime) / match.HoldSeconds);
-            GestureProgressChanged?.Invoke(side, match.Type, progress);
-            EventBus.TriggerHandGestureProgress(side, match.Type.ToString(), progress);
+            PublishFeedback(side, match.Type, match.DisplayName, progress, true, sample);
 
             if (progress < 1f) return;
             if (now - state.LastFireTime < match.CooldownSeconds) return;
@@ -320,14 +340,35 @@ namespace ZombieCheckpoint.HCI.Gestures
         private Vector3 ToWorldPosition(Vector3 trackingSpacePosition)
             => originTransform != null ? originTransform.TransformPoint(trackingSpacePosition) : trackingSpacePosition;
 
+        /// <summary>
+        /// Publica el estado visualizable de la mano. El evento del <see cref="EventBus"/> sólo
+        /// se emite cuando el gesto o el progreso cambian de forma apreciable, para no inundar
+        /// a los suscriptores externos con una señal continua a 16 Hz.
+        /// </summary>
+        private void PublishFeedback(HandSide side, HandGestureType gesture, string label, float progress, bool isTracked, in HandGestureSample sample)
+        {
+            GestureFeedbackUpdated?.Invoke(new HandGestureFeedback
+            {
+                Side = side,
+                Gesture = gesture,
+                Label = label,
+                Progress = progress,
+                IsHandTracked = isTracked,
+                PalmPosition = sample.PalmPosition,
+                PalmNormal = sample.PalmNormal,
+                PalmForward = sample.PalmForward
+            });
+
+            HandDwellState state = side == HandSide.Left ? leftState : rightState;
+            if (state.LastPublishedGesture == gesture && Mathf.Abs(state.LastPublishedProgress - progress) < 0.05f) return;
+
+            state.LastPublishedGesture = gesture;
+            state.LastPublishedProgress = progress;
+            EventBus.TriggerHandGestureProgress(side, gesture.ToString(), progress);
+        }
+
         private void ClearDwell(HandSide side, HandDwellState state)
         {
-            if (state.Candidate != HandGestureType.None)
-            {
-                GestureProgressChanged?.Invoke(side, HandGestureType.None, 0f);
-                EventBus.TriggerHandGestureProgress(side, HandGestureType.None.ToString(), 0f);
-            }
-
             state.Candidate = HandGestureType.None;
             state.AwaitingRelease = false;
         }
@@ -349,6 +390,8 @@ namespace ZombieCheckpoint.HCI.Gestures
             public float HoldStartTime;
             public float LastFireTime = -100f;
             public bool AwaitingRelease;
+            public HandGestureType LastPublishedGesture = HandGestureType.None;
+            public float LastPublishedProgress = -1f;
         }
     }
 }

@@ -68,7 +68,11 @@ Assets/Scripts/
 │   │   ├── HandCommandDispatcher.cs  // Traducción gesto→orden clínica + feedback multimodal
 │   │   ├── GestureCommandContext.cs  // Resolución segura de actores vivos de la escena
 │   │   ├── IGestureCommand.cs        // Contrato de orden ejecutable y enlaces serializables
-│   │   ├── HandCommandHud.cs         // Panel flotante de vocabulario y progreso de dwell
+│   │   ├── HandGestureFeedback.cs    // Estado visualizable de una mano (gesto, progreso, pose)
+│   │   ├── HandCommandHud.cs         // Orquestador de retroalimentación anclada a la mano
+│   │   ├── HandFeedbackRing.cs       // Anillo de confirmación sobre la palma que gesticula
+│   │   ├── HandCheatSheetPanel.cs    // Chuleta de gestos al girar la palma hacia la cara
+│   │   ├── RingSpriteFactory.cs      // Generador procedural del sprite anular
 │   │   ├── HandGestureKeyboardSimulator.cs // Inyección de gestos por teclado (solo Editor)
 │   │   └── Commands/                 // Órdenes concretas (brazos, torso, alto, UV, veredicto)
 │   ├── HapticManager.cs         // API háptica dual (XRI 3.x HapticImpulsePlayer + OpenXR)
@@ -251,7 +255,8 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 
 * **Validación de Forma + Orientación:** Cada gesto exige rangos de curvatura por dedo (`FullCurl` 0–1) **y** una restricción de orientación en espacio de mundo (palma/pulgar/índice contra arriba, abajo o la mirada del jugador), transformando las poses articulares del espacio de seguimiento del `XROrigin` a mundo. La normal de la palma se calcula geométricamente con producto vectorial, invirtiendo el signo entre manos por la simetría anatómica especular.
 * **Restricciones Anti Falsos Positivos (IHC):** Dwell obligatorio de $0.6\text{ s}$ en órdenes reversibles y $1.1\text{ s}$ en veredictos irreversibles, cooldown por gesto, bloqueo de repetición hasta deshacer la postura y **zona de comando ergonómica** (la mano debe estar a menos de $0.95\text{ m}$ de la cabeza y dentro del cono de visión) para que un brazo en reposo nunca emita órdenes.
-* **Feedback Multimodal (`HandCommandHud.cs` + `HandCommandDispatcher.cs`):** Panel flotante en espacio de mundo que muestra la chuleta de gestos, el gesto en curso con barra de progreso de confirmación (cian → verde) y la confirmación de la orden (`✔` aceptada / `✖` no aplicable), acompañada de vibración háptica en la mano emisora y sonido diegético del puesto.
+* **Feedback Anclado a la Mano, No a la Cara (`HandFeedbackRing.cs` + `HandCheatSheetPanel.cs`):** Se descarta cualquier panel fijo delante del visor por invasivo: tapaba al propio civil que se está inspeccionando. En su lugar, un **anillo de confirmación flota sobre la palma que gesticula** (corona procedural de $\approx 10\text{ cm}$ con relleno radial cian → verde y porcentaje en el centro), aparece sólo mientras se sostiene la postura y se desvanece al resolverse. La **chuleta de gestos** se despliega únicamente al girar la palma hacia la cara con los dedos hacia arriba (metáfora de consultar un reloj), exigiendo $0.35\text{ s}$ de sostén para no parpadear. Ambos widgets se encaran al jugador e interpolan posición y relleno por fotograma, de modo que el muestreo a $16\text{ Hz}$ del reconocedor se percibe continuo.
+* **Confirmación Multimodal de la Orden:** Al ejecutarse, el anillo destella verde con la etiqueta de la orden (o ámbar con “ahora no” si el gesto se entendió pero no era aplicable en ese estado), acompañado de vibración háptica en la mano emisora y sonido diegético del puesto.
 * **Arquitectura Desacoplada:** `HandGestureRecognizer` desconoce las órdenes; `HandCommandDispatcher` trabaja solo contra `IGestureCommand` y resuelve los enlaces desde una lista serializable editable en el Inspector. Los eventos `OnHandGestureProgress`, `OnHandGesturePerformed` y `OnHandCommandExecuted` se publican además en el `EventBus` para métricas IHC. El veredicto sigue pasando por `CheckpointFlowManager`, que conserva la protección contra doble veredicto.
 * **Instalación e Iteración:** Menú `ZombieCheckpoint ▸ Instalar Modulo de Comandos por Manos` (`HandCommandModuleInstaller.cs`) añade o repara el módulo en la escena abierta sin reconstruirla; `CheckpointSceneBuilder` también lo instala en las reconstrucciones procedurales. Para pruebas en PC, `HandGestureKeyboardSimulator` inyecta gestos con las teclas **1 – 8** y se autodestruye fuera del Editor, igual que el simulador XR.
 

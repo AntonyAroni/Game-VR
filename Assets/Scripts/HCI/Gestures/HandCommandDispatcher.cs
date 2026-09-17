@@ -31,8 +31,8 @@ namespace ZombieCheckpoint.HCI.Gestures
         [SerializeField] private string acceptedSoundId = "button_click";
         [SerializeField] private string rejectedSoundId = "verdict_error";
 
-        /// <summary>Orden resuelta: (etiqueta legible, fue ejecutada realmente).</summary>
-        public event Action<string, bool> CommandExecuted;
+        /// <summary>Orden resuelta: (mano emisora, etiqueta legible, fue ejecutada realmente).</summary>
+        public event Action<HandSide, string, bool> CommandExecuted;
 
         /// <summary>Reconocedor al que está enganchado el despachador (lo consulta el HUD).</summary>
         public HandGestureRecognizer Recognizer => recognizer;
@@ -135,7 +135,7 @@ namespace ZombieCheckpoint.HCI.Gestures
                 EventBus.RequestSpatialAudio(rejectedSoundId, palmPosition, 0.35f);
             }
 
-            CommandExecuted?.Invoke(command.DisplayName, executed);
+            CommandExecuted?.Invoke(hand, command.DisplayName, executed);
             EventBus.TriggerHandCommandExecuted(command.DisplayName, executed);
         }
 
