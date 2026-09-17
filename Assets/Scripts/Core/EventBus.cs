@@ -61,6 +61,20 @@ namespace ZombieCheckpoint.Core
         public static void TriggerFlashlightModeChanged(bool isUvActive)
             => OnFlashlightModeChanged?.Invoke(isUvActive);
 
+        // --- Eventos de Comandos Gestuales (Módulo de Manos Libres) ---
+        public static event Action<HandSide, string, float> OnHandGestureProgress; // (hand, gestureName, progress01)
+        public static event Action<HandSide, string> OnHandGesturePerformed;       // (hand, gestureName)
+        public static event Action<string, bool> OnHandCommandExecuted;            // (commandLabel, wasAccepted)
+
+        public static void TriggerHandGestureProgress(HandSide hand, string gestureName, float progress01)
+            => OnHandGestureProgress?.Invoke(hand, gestureName, progress01);
+
+        public static void TriggerHandGesturePerformed(HandSide hand, string gestureName)
+            => OnHandGesturePerformed?.Invoke(hand, gestureName);
+
+        public static void TriggerHandCommandExecuted(string commandLabel, bool wasAccepted)
+            => OnHandCommandExecuted?.Invoke(commandLabel, wasAccepted);
+
         /// <summary>
         /// Limpia todas las suscripciones para evitar fugas de memoria al recargar escenas.
         /// </summary>
@@ -76,6 +90,9 @@ namespace ZombieCheckpoint.Core
             OnSpatialAudioRequested = null;
             OnHeartbeatAuscultationStateChanged = null;
             OnFlashlightModeChanged = null;
+            OnHandGestureProgress = null;
+            OnHandGesturePerformed = null;
+            OnHandCommandExecuted = null;
         }
     }
 }

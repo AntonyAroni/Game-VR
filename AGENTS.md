@@ -59,6 +59,18 @@ Assets/Scripts/
 ├── Environment/
 │   └── QuarantineDoorController.cs // Control cinemático y sonoro de compuertas
 ├── HCI/
+│   ├── Gestures/                // Módulo de comandos por manos (interacción sin mandos)
+│   │   ├── HandGestureType.cs        // Léxico gestual y restricciones de orientación
+│   │   ├── HandGestureSample.cs      // Muestra normalizada de una mano (struct sin allocs)
+│   │   ├── HandGestureDefinition.cs  // Definición declarativa de un gesto (rangos + dwell)
+│   │   ├── HandGestureCatalog.cs     // Catálogo calibrado por defecto y enlaces gesto→orden
+│   │   ├── HandGestureRecognizer.cs  // Reconocedor articular (XRHandSubsystem + XRFingerShape)
+│   │   ├── HandCommandDispatcher.cs  // Traducción gesto→orden clínica + feedback multimodal
+│   │   ├── GestureCommandContext.cs  // Resolución segura de actores vivos de la escena
+│   │   ├── IGestureCommand.cs        // Contrato de orden ejecutable y enlaces serializables
+│   │   ├── HandCommandHud.cs         // Panel flotante de vocabulario y progreso de dwell
+│   │   ├── HandGestureKeyboardSimulator.cs // Inyección de gestos por teclado (solo Editor)
+│   │   └── Commands/                 // Órdenes concretas (brazos, torso, alto, UV, veredicto)
 │   ├── HapticManager.cs         // API háptica dual (XRI 3.x HapticImpulsePlayer + OpenXR)
 │   ├── SpatialAudioManager.cs   // Generador de audio posicional para latidos, alarmas y sellos
 │   ├── UsabilityMetricsTracker.cs // Métricas IHC: tiempos de decisión, aciertos y turnos
@@ -133,6 +145,7 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 | **Retirar / Levantar Polo (Torso)** | Tecla **C** | Descubre el torso del civil revelando erupciones cutáneas o marcas. |
 | **Conmutar Modo Mando / Manos** | Tecla **H** | Alterna entre visualización y simulación de Mandos y Manos Articuladas en `XR Device Simulator`. |
 | **Mostrar / Ocultar Ayuda HUD** | Teclas **F1** / **O** | Despliega una tarjeta semi-transparente con los controles y el ángulo actual de la muñeca. |
+| **Simular Gesto de Mano (Comandos)** | Teclas **1 – 8** (mantener **Shift Izq** = mano izquierda) | Inyecta gestos sintéticos en el módulo de comandos por manos cuando no hay seguimiento articular real: **1** palma arriba, **2** palma abajo, **3** índice señalando, **4** pulgar arriba, **5** pulgar abajo, **6** palma al frente, **7** pinza, **8** puño. Exclusivo del Editor. |
 
 ---
 
@@ -221,6 +234,26 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 * **Calibración de Suelo (Floor Tracking):** `XROrigin.RequestedTrackingOriginMode` configurado explícitamente en `TrackingOriginMode.Floor` con `CameraYOffset = 1.65f`. Esto calibra automáticamente la altura de la cámara respecto al guardián físico de Meta Quest, situando la línea de visión del jugador a nivel natural frente al civil ($1.70\text{ m}$) y el mostrador clínico ($1.05\text{ m}$).
 * **Preprocesador de Compilación Automático (`QuestBuildSceneProcessor`):** Implementación de `IProcessSceneWithReport` en `QuestBuildHelper.cs` que suprime automáticamente en memoria el GameObject `XR Device Simulator` durante el empaquetado del APK de Android, preservándolo intacto en el Editor de Unity para desarrollo en PC.
 * **Autodestrucción en Runtime (Guarda de Seguridad):** Inclusión de `#if !UNITY_EDITOR` en el `Awake()` de `XRSimulatorDesktopEnhancer.cs` para destruir inmediatamente el simulador si alguna vez llega a instanciarse en un ejecutable Standalone/Android.
+
+### Q. Módulo de Comandos por Manos (`Assets/Scripts/HCI/Gestures/`)
+* **Interacción Sin Mandos ni Botones:** El oficial puede dirigir toda la inspección usando únicamente sus manos desnudas. El módulo lee el esqueleto articular real de XR Hands 1.9 (`XRHandSubsystem` + `XRFingerShapeMath`) y traduce posturas estáticas en órdenes clínicas, sin depender de assets de los Samples del paquete.
+* **Vocabulario Gestual Calibrado (`HandGestureCatalog.cs`):**
+
+  | Gesto | Orden Emitida | Mapeo Natural (IHC) |
+  | :--- | :--- | :--- |
+  | Palma abierta hacia arriba | Levantar brazos del civil | Metáfora física de "arriba" |
+  | Palma abierta hacia abajo | Bajar brazos | Metáfora física de "abajo" |
+  | Índice señalando al frente | Descubrir / cubrir torso | "Descúbrase ahí" |
+  | Palma al frente (alto) | Detener la marcha del civil | Gesto universal de detención en controles |
+  | Pulgar arriba (mano derecha) | Veredicto **APROBADO** | Signo cultural de aprobación |
+  | Pulgar abajo (mano derecha) | Veredicto **CUARENTENA** | Signo cultural de rechazo |
+  | Pinza índice-pulgar / Puño | Reservados (sin asignar) | Evitan colisión con el `select` de XRI y con la postura de agarre |
+
+* **Validación de Forma + Orientación:** Cada gesto exige rangos de curvatura por dedo (`FullCurl` 0–1) **y** una restricción de orientación en espacio de mundo (palma/pulgar/índice contra arriba, abajo o la mirada del jugador), transformando las poses articulares del espacio de seguimiento del `XROrigin` a mundo. La normal de la palma se calcula geométricamente con producto vectorial, invirtiendo el signo entre manos por la simetría anatómica especular.
+* **Restricciones Anti Falsos Positivos (IHC):** Dwell obligatorio de $0.6\text{ s}$ en órdenes reversibles y $1.1\text{ s}$ en veredictos irreversibles, cooldown por gesto, bloqueo de repetición hasta deshacer la postura y **zona de comando ergonómica** (la mano debe estar a menos de $0.95\text{ m}$ de la cabeza y dentro del cono de visión) para que un brazo en reposo nunca emita órdenes.
+* **Feedback Multimodal (`HandCommandHud.cs` + `HandCommandDispatcher.cs`):** Panel flotante en espacio de mundo que muestra la chuleta de gestos, el gesto en curso con barra de progreso de confirmación (cian → verde) y la confirmación de la orden (`✔` aceptada / `✖` no aplicable), acompañada de vibración háptica en la mano emisora y sonido diegético del puesto.
+* **Arquitectura Desacoplada:** `HandGestureRecognizer` desconoce las órdenes; `HandCommandDispatcher` trabaja solo contra `IGestureCommand` y resuelve los enlaces desde una lista serializable editable en el Inspector. Los eventos `OnHandGestureProgress`, `OnHandGesturePerformed` y `OnHandCommandExecuted` se publican además en el `EventBus` para métricas IHC. El veredicto sigue pasando por `CheckpointFlowManager`, que conserva la protección contra doble veredicto.
+* **Instalación e Iteración:** Menú `ZombieCheckpoint ▸ Instalar Modulo de Comandos por Manos` (`HandCommandModuleInstaller.cs`) añade o repara el módulo en la escena abierta sin reconstruirla; `CheckpointSceneBuilder` también lo instala en las reconstrucciones procedurales. Para pruebas en PC, `HandGestureKeyboardSimulator` inyecta gestos con las teclas **1 – 8** y se autodestruye fuera del Editor, igual que el simulador XR.
 
 ---
 

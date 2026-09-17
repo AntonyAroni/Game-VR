@@ -829,6 +829,9 @@ namespace ZombieCheckpoint.Editor
                     ?.SetValue(flowMgr, fTorsoPf);
             }
 
+            // --- 13.B MÓDULO DE COMANDOS POR MANOS (INTERACCIÓN SIN MANDOS NI BOTONES) ---
+            HandCommandModuleInstaller.Install(boothRoot);
+
             // --- 14. SIMULADOR XR PARA DESARROLLO EN ESCRITORIO (PC / TECLADO + RATÓN) ---
             var simPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Samples/XR Interaction Toolkit/3.5.1/XR Device Simulator/XR Device Simulator.prefab");
             if (simPrefab != null)
