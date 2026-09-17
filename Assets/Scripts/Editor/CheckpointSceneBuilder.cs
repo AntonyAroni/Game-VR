@@ -1043,6 +1043,14 @@ namespace ZombieCheckpoint.Editor
                     caster.enableStabilization = false;
                 }
             }
+
+            // 5. Configurar origen de tracking en modo Floor con altura de ojos ergonómica (1.65m)
+            var xrOrigin = rig.GetComponent<Unity.XR.CoreUtils.XROrigin>();
+            if (xrOrigin != null)
+            {
+                xrOrigin.RequestedTrackingOriginMode = Unity.XR.CoreUtils.XROrigin.TrackingOriginMode.Floor;
+                xrOrigin.CameraYOffset = 1.65f;
+            }
         }
     }
 }

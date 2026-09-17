@@ -216,6 +216,12 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 * **Detección Lumínica Tolerante (`FlashlightTool.cs`):** Integración de `Physics.SphereCast` ($r = 0.06\text{ m}$) con `QueryTriggerInteraction.Collide` para asegurar la detección de pupilas y erupciones torácicas sin depender de un rayo infinitesimal.
 * **Refresco Robusto de Auscultación (`StethoscopeTool.cs`):** Validación de referencias vivas frente a objetos destruidos entre rondas para asegurar auscultación continua en cada nuevo civil.
 
+### P. Calibración de Altura en Meta Quest y Aislamiento del Simulador (`QuestBuildHelper.cs` & `XRSimulatorDesktopEnhancer.cs`)
+* **Diagnóstico del "Spawn de Ratón":** En compilaciones Android para Meta Quest, la presencia de `XR Device Simulator` en la escena secuestraba los dispositivos de entrada (`removeOtherHMDDevices = true`), anulando el tracking 6DOF del visor físico e inyectando una posición estática $(0, 0, 0)$. Sumado a `TrackingOriginMode.NotSpecified`, la cámara se fijaba a ras de suelo ($Y = 0\text{ m}$), mirando únicamente las zapatillas del sospechoso.
+* **Calibración de Suelo (Floor Tracking):** `XROrigin.RequestedTrackingOriginMode` configurado explícitamente en `TrackingOriginMode.Floor` con `CameraYOffset = 1.65f`. Esto calibra automáticamente la altura de la cámara respecto al guardián físico de Meta Quest, situando la línea de visión del jugador a nivel natural frente al civil ($1.70\text{ m}$) y el mostrador clínico ($1.05\text{ m}$).
+* **Preprocesador de Compilación Automático (`QuestBuildSceneProcessor`):** Implementación de `IProcessSceneWithReport` en `QuestBuildHelper.cs` que suprime automáticamente en memoria el GameObject `XR Device Simulator` durante el empaquetado del APK de Android, preservándolo intacto en el Editor de Unity para desarrollo en PC.
+* **Autodestrucción en Runtime (Guarda de Seguridad):** Inclusión de `#if !UNITY_EDITOR` en el `Awake()` de `XRSimulatorDesktopEnhancer.cs` para destruir inmediatamente el simulador si alguna vez llega a instanciarse en un ejecutable Standalone/Android.
+
 ---
 
 ## 7. Hoja de Ruta de Siguientes Pasos (Próximas Mejoras de Inmersión)

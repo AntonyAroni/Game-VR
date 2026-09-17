@@ -65,6 +65,20 @@ namespace ZombieCheckpoint.HCI
 
         private void Awake()
         {
+#if !UNITY_EDITOR
+            // El simulador de teclado/ratón es exclusivo para pruebas en PC dentro del Editor.
+            // En Meta Quest (Android) debe eliminarse de inmediato para no secuestrar
+            // el tracking físico 6DOF del visor ni forzar la posición al suelo (0, 0, 0).
+            if (simulator != null)
+            {
+                DestroyImmediate(simulator.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(gameObject);
+            }
+            return;
+#else
             if (simulator == null)
             {
                 if (!TryGetComponent(out simulator)) simulator = FindAnyObjectByType<XRDeviceSimulator>();
@@ -74,6 +88,7 @@ namespace ZombieCheckpoint.HCI
             {
                 CacheReflectionMembers();
             }
+#endif
         }
 
         private void CacheReflectionMembers()
