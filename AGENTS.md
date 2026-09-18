@@ -75,6 +75,14 @@ Assets/Scripts/
 │   │   ├── RingSpriteFactory.cs      // Generador procedural del sprite anular
 │   │   ├── HandGestureKeyboardSimulator.cs // Inyección de gestos por teclado (solo Editor)
 │   │   └── Commands/                 // Órdenes concretas (brazos, torso, alto, UV, veredicto)
+│   ├── Grip/                    // Agarre natural con la palma (herramientas empuñadas, no pellizcadas)
+│   │   ├── HandAxis.cs               // Ejes anatómicos de la mano y conversión especular izq/der
+│   │   ├── PalmGripAnchor.cs         // Ancla de agarre en la palma por mano + agarre por cierre de mano
+│   │   ├── HandGraspSelectReader.cs  // Bypass de selección de XRI: pinza O puño
+│   │   ├── PalmGripProfile.cs        // Asiento del objeto en la palma (filtro de selección por mano)
+│   │   ├── PalmGripPresets.cs        // Empuñaduras calibradas: linterna, sello, estetoscopio, pasaporte
+│   │   └── NaturalHandGripSystem.cs  // Servicio de escena que instala anclas y perfiles en runtime
+│   ├── HandPalmFrame.cs         // Marco anatómico de la palma compartido por gestos y agarre
 │   ├── HapticManager.cs         // API háptica dual (XRI 3.x HapticImpulsePlayer + OpenXR)
 │   ├── SpatialAudioManager.cs   // Generador de audio posicional para latidos, alarmas y sellos
 │   ├── UsabilityMetricsTracker.cs // Métricas IHC: tiempos de decisión, aciertos y turnos
@@ -259,6 +267,23 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 * **Confirmación Multimodal de la Orden:** Al ejecutarse, el anillo destella verde con la etiqueta de la orden (o ámbar con “ahora no” si el gesto se entendió pero no era aplicable en ese estado), acompañado de vibración háptica en la mano emisora y sonido diegético del puesto.
 * **Arquitectura Desacoplada:** `HandGestureRecognizer` desconoce las órdenes; `HandCommandDispatcher` trabaja solo contra `IGestureCommand` y resuelve los enlaces desde una lista serializable editable en el Inspector. Los eventos `OnHandGestureProgress`, `OnHandGesturePerformed` y `OnHandCommandExecuted` se publican además en el `EventBus` para métricas IHC. El veredicto sigue pasando por `CheckpointFlowManager`, que conserva la protección contra doble veredicto.
 * **Instalación e Iteración:** Menú `ZombieCheckpoint ▸ Instalar Modulo de Comandos por Manos` (`HandCommandModuleInstaller.cs`) añade o repara el módulo en la escena abierta sin reconstruirla; `CheckpointSceneBuilder` también lo instala en las reconstrucciones procedurales. Para pruebas en PC, `HandGestureKeyboardSimulator` inyecta gestos con las teclas **1 – 8** y se autodestruye fuera del Editor, igual que el simulador XR.
+
+### R. Agarre Natural con la Palma (`Assets/Scripts/HCI/Grip/`)
+* **Diagnóstico:** El rig `XR Origin Hands (XR Rig)` de XRI 3.x ancla todo agarre al **punto de pinza** entre pulgar e índice: tanto el `InteractionAttachController.transformToFollow` como el origen del `SphereInteractionCaster` cercano apuntan a `Pinch Grab Pose` (un `TrackedPoseDriver` sobre la acción `Pinch Position`). Además, las herramientas no declaraban `attachTransform`, así que su pivote se pegaba a las yemas, y el `VelocityTracking` con suavizado las hacía flotar con retardo detrás de la mano. Resultado: todo se sentía "pellizcado".
+* **Ancla en la Palma (`PalmGripAnchor.cs`):** Por cada mano articulada se crea una `Palm Grab Pose` que sigue el centro real de la palma leído de XR Hands (bajo el Camera Offset, el mismo espacio que los `TrackedPoseDriver`), actualizada en las fases `Dynamic` y `BeforeRender` para latencia cero. El interactor la sigue **sólo cuando el objetivo cercano o el objeto sostenido tiene perfil de palma**; las partes del cuerpo del civil y los agarres lejanos por rayo conservan intacta la pinza, porque la cinemática del brazo del civil depende de ella. La detección cercana se recentra en una sonda en el hueco de la mano, que con el radio de $10\text{ cm}$ sigue cubriendo el punto de pinza.
+* **Agarrar Cerrando la Mano (`HandGraspSelectReader.cs`):** Se instala como `bypass` del lector de selección de XRI, de modo que la pinza original sigue funcionando y **cerrar la mano** (curvatura media de los cuatro dedos $\geq 0.52$, liberación $\leq 0.36$ con histéresis) se suma como segunda vía. El puño sólo agarra si en el instante de cerrarse hay un objeto a menos de $11\text{ cm}$: cerrar en el aire y luego tocar algo no lo coge, como en la vida real.
+* **Asiento Anatómico por Objeto (`PalmGripProfile.cs` + `PalmGripPresets.cs`):** Cada herramienta declara qué eje propio apunta a qué dirección anatómica (dedos, palma, pulgar, meñique). Como las manos son imágenes especulares, el attach se recalcula **por mano** dentro de un `IXRSelectFilter` (el único punto donde XRI conoce qué mano va a agarrar antes de fijar desfases), trabajando en espacio de mundo para ser inmune a escalas no uniformes. Presets calibrados con la geometría de `CheckpointSceneBuilder`:
+
+  | Objeto | Empuñadura | Justificación IHC |
+  | :--- | :--- | :--- |
+  | Linterna | Puño sobre el mango, haz saliendo por el lado del pulgar | Como sujetar una linterna real para apuntar |
+  | Sello | Puño en el vástago, almohadilla bajo el meñique | Se estampa bajando el puño |
+  | Estetoscopio | Campana en la palma, cuerpo saliendo por el meñique | Basta apoyar la palma en el pecho para auscultar |
+  | Pasaporte | Apoyado en la palma, cara hacia fuera, texto hacia los dedos | Se lee girando la mano hacia la cara |
+
+* **Seguimiento Sin Flotación:** Los objetos con perfil pasan a `MovementType.Instantaneous` sin suavizado: van pegados a la mano en lugar de perseguirla. Contrapartida conocida: mientras se sostienen atraviesan la mesa, porque ya no los frena la física; los sellos y la auscultación siguen funcionando porque dependen de *triggers*, no de colisiones.
+* **Coexistencia con los Gestos:** `PalmGripAnchor` publica `EventBus.OnHandGrabStateChanged`; el reconocedor ignora las posturas de una mano que sostiene algo (un puño con el pulgar arriba agarrando la linterna ya no puede emitir un veredicto) y la chuleta de la palma no se despliega mientras se lee el pasaporte.
+* **Instalación:** Menú `ZombieCheckpoint ▸ Instalar Agarre Natural de Manos` (no destructivo); `CheckpointSceneBuilder` también lo instala. Todo se aplica en tiempo de ejecución sin modificar los prefabs del rig, y `NaturalHandGripSystem` escucha `XRInteractionManager.interactableRegistered` para cubrir objetos que aparezcan más tarde.
 
 ---
 

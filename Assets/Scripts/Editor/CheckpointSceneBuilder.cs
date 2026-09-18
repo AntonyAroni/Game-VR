@@ -545,10 +545,10 @@ namespace ZombieCheckpoint.Editor
 
             var stethoGrab = stetho.GetComponent<XRGrabInteractable>();
             if (stethoGrab == null) stethoGrab = stetho.AddComponent<XRGrabInteractable>();
-            stethoGrab.movementType = UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable.MovementType.VelocityTracking;
+            stethoGrab.movementType = UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable.MovementType.Instantaneous; // Pegado a la mano (ver PalmGripProfile)
             stethoGrab.throwOnDetach = true;
-            stethoGrab.smoothPosition = true;
-            stethoGrab.smoothRotation = true;
+            stethoGrab.smoothPosition = false;
+            stethoGrab.smoothRotation = false;
 
             Transform bellTrans = null;
             foreach (var t in stetho.GetComponentsInChildren<Transform>())
@@ -832,6 +832,9 @@ namespace ZombieCheckpoint.Editor
             // --- 13.B MÓDULO DE COMANDOS POR MANOS (INTERACCIÓN SIN MANDOS NI BOTONES) ---
             HandCommandModuleInstaller.Install(boothRoot);
 
+            // --- 13.C AGARRE NATURAL CON LA PALMA (HERRAMIENTAS EMPUÑADAS, NO PELLIZCADAS) ---
+            NaturalHandGripInstaller.Install(boothRoot);
+
             // --- 14. SIMULADOR XR PARA DESARROLLO EN ESCRITORIO (PC / TECLADO + RATÓN) ---
             var simPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Samples/XR Interaction Toolkit/3.5.1/XR Device Simulator/XR Device Simulator.prefab");
             if (simPrefab != null)
@@ -865,10 +868,10 @@ namespace ZombieCheckpoint.Editor
             grabCol.size = new Vector3(0.065f, 0.11f, 0.045f);
 
             var grabInteractable = stampRoot.AddComponent<XRGrabInteractable>();
-            grabInteractable.movementType = UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable.MovementType.VelocityTracking;
+            grabInteractable.movementType = UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable.MovementType.Instantaneous; // Pegado a la mano (ver PalmGripProfile)
             grabInteractable.throwOnDetach = true;
-            grabInteractable.smoothPosition = true;
-            grabInteractable.smoothRotation = true;
+            grabInteractable.smoothPosition = false;
+            grabInteractable.smoothRotation = false;
 
             // 1. Placa base
             GameObject baseObj = GameObject.CreatePrimitive(PrimitiveType.Cube);

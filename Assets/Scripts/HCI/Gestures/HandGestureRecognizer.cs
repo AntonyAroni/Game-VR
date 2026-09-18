@@ -70,7 +70,9 @@ namespace ZombieCheckpoint.HCI.Gestures
 
         private XRHandSubsystem handSubsystem;
         private XROrigin xrOrigin;
-        private Transform originTransform;
+        private Transform trackingSpace;
+        private bool leftHandHolding;
+        private bool rightHandHolding;
         private Transform headTransform;
 
         private readonly HandDwellState leftState = new HandDwellState();
@@ -97,6 +99,16 @@ namespace ZombieCheckpoint.HCI.Gestures
             {
                 RestoreDefaultDefinitions();
             }
+        }
+
+        private void OnEnable()
+        {
+            EventBus.OnHandGrabStateChanged += HandleGrabStateChanged;
+        }
+
+        private void OnDisable()
+        {
+            EventBus.OnHandGrabStateChanged -= HandleGrabStateChanged;
         }
 
         private void Update()
@@ -177,7 +189,8 @@ namespace ZombieCheckpoint.HCI.Gestures
 
             if (xrOrigin != null)
             {
-                if (xrOrigin.Origin != null) originTransform = xrOrigin.Origin.transform;
+                if (xrOrigin.CameraFloorOffsetObject != null) trackingSpace = xrOrigin.CameraFloorOffsetObject.transform;
+                else if (xrOrigin.Origin != null) trackingSpace = xrOrigin.Origin.transform;
                 if (xrOrigin.Camera != null) headTransform = xrOrigin.Camera.transform;
             }
 
@@ -196,7 +209,9 @@ namespace ZombieCheckpoint.HCI.Gestures
                 return;
             }
 
-            if (!IsInCommandZone(sample))
+            // Una mano que sostiene una herramienta no está dando órdenes: el puño alrededor de la
+            // linterna con el pulgar arriba no debe confundirse con un veredicto de aprobación.
+            if (IsHandHolding(side) || !IsInCommandZone(sample))
             {
                 ClearDwell(side, state);
                 PublishFeedback(side, HandGestureType.None, string.Empty, 0f, true, sample);
@@ -237,6 +252,14 @@ namespace ZombieCheckpoint.HCI.Gestures
 
             GesturePerformed?.Invoke(side, match.Type, sample.PalmPosition);
             EventBus.TriggerHandGesturePerformed(side, match.Type.ToString());
+        }
+
+        private bool IsHandHolding(HandSide side) => side == HandSide.Left ? leftHandHolding : rightHandHolding;
+
+        private void HandleGrabStateChanged(HandSide side, bool isHolding)
+        {
+            if (side == HandSide.Left) leftHandHolding = isHolding;
+            else if (side == HandSide.Right) rightHandHolding = isHolding;
         }
 
         private HandGestureDefinition FindMatchingDefinition(in HandGestureSample sample)
@@ -281,28 +304,16 @@ namespace ZombieCheckpoint.HCI.Gestures
             if (!littleShape.TryGetFullCurl(out float littleCurl)) return false;
             if (!indexShape.TryGetPinch(out float indexPinch)) indexPinch = 0f;
 
-            if (!hand.GetJoint(XRHandJointID.Wrist).TryGetPose(out Pose wrist)) return false;
-            if (!hand.GetJoint(XRHandJointID.MiddleProximal).TryGetPose(out Pose middleProximal)) return false;
+            if (!HandPalmFrame.TryGetPalmFrame(hand, side == HandSide.Right,
+                    out Vector3 palmLocalPosition, out Vector3 palmForward, out Vector3 palmNormal))
+            {
+                return false;
+            }
+
             if (!hand.GetJoint(XRHandJointID.IndexProximal).TryGetPose(out Pose indexProximal)) return false;
-            if (!hand.GetJoint(XRHandJointID.LittleProximal).TryGetPose(out Pose littleProximal)) return false;
             if (!hand.GetJoint(XRHandJointID.ThumbProximal).TryGetPose(out Pose thumbProximal)) return false;
             if (!hand.GetJoint(XRHandJointID.ThumbTip).TryGetPose(out Pose thumbTip)) return false;
             if (!hand.GetJoint(XRHandJointID.IndexTip).TryGetPose(out Pose indexTip)) return false;
-
-            // La articulación Palm no la publican todos los proveedores: la muñeca actúa de respaldo.
-            Vector3 palmLocalPosition = hand.GetJoint(XRHandJointID.Palm).TryGetPose(out Pose palm)
-                ? palm.position
-                : wrist.position;
-
-            Vector3 palmForward = middleProximal.position - wrist.position;
-            Vector3 acrossPalm = littleProximal.position - indexProximal.position;
-            if (palmForward.sqrMagnitude < 1e-8f || acrossPalm.sqrMagnitude < 1e-8f) return false;
-
-            palmForward.Normalize();
-            acrossPalm.Normalize();
-
-            // El producto vectorial invierte su signo entre manos por la simetría anatómica especular.
-            Vector3 palmNormal = Vector3.Cross(palmForward, acrossPalm) * (side == HandSide.Right ? -1f : 1f);
 
             sample = new HandGestureSample
             {
@@ -325,20 +336,21 @@ namespace ZombieCheckpoint.HCI.Gestures
         }
 
         /// <summary>
-        /// Las poses articulares llegan en espacio de seguimiento del XROrigin; hay que llevarlas
-        /// a espacio de mundo antes de compararlas contra arriba, abajo o la dirección de mirada.
+        /// Las poses articulares llegan en espacio de seguimiento, cuyo marco local es el Camera
+        /// Offset del XR Origin (no el Origin raíz): en modo Device ese offset eleva la escena
+        /// la altura de ojos configurada, y sin él las palmas quedarían por debajo del suelo.
         /// </summary>
         private Vector3 ToWorldDirection(Vector3 trackingSpaceDirection)
         {
             if (trackingSpaceDirection.sqrMagnitude < 1e-8f) return Vector3.zero;
-            Vector3 dir = originTransform != null
-                ? originTransform.rotation * trackingSpaceDirection
+            Vector3 dir = trackingSpace != null
+                ? trackingSpace.rotation * trackingSpaceDirection
                 : trackingSpaceDirection;
             return dir.normalized;
         }
 
         private Vector3 ToWorldPosition(Vector3 trackingSpacePosition)
-            => originTransform != null ? originTransform.TransformPoint(trackingSpacePosition) : trackingSpacePosition;
+            => trackingSpace != null ? trackingSpace.TransformPoint(trackingSpacePosition) : trackingSpacePosition;
 
         /// <summary>
         /// Publica el estado visualizable de la mano. El evento del <see cref="EventBus"/> sólo
@@ -354,6 +366,7 @@ namespace ZombieCheckpoint.HCI.Gestures
                 Label = label,
                 Progress = progress,
                 IsHandTracked = isTracked,
+                IsHoldingObject = IsHandHolding(side),
                 PalmPosition = sample.PalmPosition,
                 PalmNormal = sample.PalmNormal,
                 PalmForward = sample.PalmForward

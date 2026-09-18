@@ -180,6 +180,9 @@ namespace ZombieCheckpoint.HCI.Gestures
         {
             if (!feedback.IsHandTracked || headAnchor == null) return false;
 
+            // Leer el pasaporte en la mano usa la misma postura: con un objeto agarrado no se despliega.
+            if (feedback.IsHoldingObject) return false;
+
             // Mientras se confirma una orden la mano está ocupada: la chuleta no debe estorbar.
             if (feedback.Progress > 0.02f) return false;
 

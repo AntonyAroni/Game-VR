@@ -28,6 +28,9 @@ namespace ZombieCheckpoint.HCI.Gestures
         /// <summary>Indica si el seguimiento articular de esta mano está activo.</summary>
         public bool IsHandTracked;
 
+        /// <summary>Indica si la mano sostiene un objeto (sus posturas no se interpretan como órdenes).</summary>
+        public bool IsHoldingObject;
+
         /// <summary>Posición de la palma en espacio de mundo (anclaje del indicador).</summary>
         public Vector3 PalmPosition;
 

@@ -75,6 +75,12 @@ namespace ZombieCheckpoint.Core
         public static void TriggerHandCommandExecuted(string commandLabel, bool wasAccepted)
             => OnHandCommandExecuted?.Invoke(commandLabel, wasAccepted);
 
+        // --- Eventos de Agarre Natural con las Manos ---
+        public static event Action<HandSide, bool> OnHandGrabStateChanged; // (hand, isHoldingObject)
+
+        public static void TriggerHandGrabStateChanged(HandSide hand, bool isHoldingObject)
+            => OnHandGrabStateChanged?.Invoke(hand, isHoldingObject);
+
         /// <summary>
         /// Limpia todas las suscripciones para evitar fugas de memoria al recargar escenas.
         /// </summary>
@@ -93,6 +99,7 @@ namespace ZombieCheckpoint.Core
             OnHandGestureProgress = null;
             OnHandGesturePerformed = null;
             OnHandCommandExecuted = null;
+            OnHandGrabStateChanged = null;
         }
     }
 }
