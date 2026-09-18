@@ -809,7 +809,8 @@ namespace ZombieCheckpoint.Editor
             flowType.GetField("civilianPrefabs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(flowMgr, pfabList);
 
-            var woundM = AssetDatabase.LoadAssetAtPath<Material>("Assets/Abandoned_Asylum/Materials/M_InfectedWound.mat");
+            var woundM = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/M_InfectedWound.mat")
+                      ?? AssetDatabase.LoadAssetAtPath<Material>("Assets/Abandoned_Asylum/Materials/M_InfectedWound.mat");
             if (woundM != null)
             {
                 flowType.GetField("woundMaterial", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)

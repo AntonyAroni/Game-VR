@@ -108,7 +108,8 @@ namespace ZombieCheckpoint.Core
 
             if (woundMaterial == null)
             {
-                woundMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Abandoned_Asylum/Materials/M_InfectedWound.mat");
+                woundMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/M_InfectedWound.mat")
+                             ?? UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Abandoned_Asylum/Materials/M_InfectedWound.mat");
             }
 
             if (maleTorsoPrefab == null)
