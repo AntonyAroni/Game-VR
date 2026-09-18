@@ -10,7 +10,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
     public class BiteMarkSymptom : MonoBehaviour, ISymptom
     {
         [Header("Configuración del Síntoma")]
-        [SerializeField] private string symptomName = "Mordedura en antebrazo";
+        [SerializeField] private string symptomName = "BRAZO";
         [SerializeField] private bool isPositiveForInfection = true;
         [SerializeField] private GameObject woundVisualObject;
         [SerializeField] private Transform woundTransform;
@@ -58,7 +58,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             float distance = Vector3.Distance(mainCamera.transform.position, woundTransform.position);
             if (alignment > visibilityThreshold && distance < 1.2f)
             {
-                DiscoverSymptom("¡Herida por mordedura localizada en la piel!");
+                DiscoverSymptom("¡Tiene una mordedura!");
             }
         }
 
@@ -66,12 +66,12 @@ namespace ZombieCheckpoint.Survivors.Symptoms
         {
             if (!isPositiveForInfection)
             {
-                feedbackMessage = "Piel despejada, sin signos de mordeduras o desgarros.";
+                feedbackMessage = "Brazo sin heridas.";
                 return true;
             }
 
-            DiscoverSymptom("Mordedura infectada confirmada.");
-            feedbackMessage = "¡Marcas dentales humanas profundas con necrosis tisular!";
+            DiscoverSymptom("¡Tiene una mordedura!");
+            feedbackMessage = "¡Tiene una mordedura!";
             return true;
         }
 

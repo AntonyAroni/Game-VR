@@ -132,7 +132,7 @@ namespace ZombieCheckpoint.HCI
                     }
                     if (statusDisplayText != null)
                     {
-                        statusDisplayText.text = "<color=#ff3333>● ALERTA: TAQUICARDIA / ARRITMIA</color>";
+                        statusDisplayText.text = "<color=#ff3333>● LATIDO ANORMAL</color>";
                     }
                 }
                 else
@@ -144,7 +144,7 @@ namespace ZombieCheckpoint.HCI
                     }
                     if (statusDisplayText != null)
                     {
-                        statusDisplayText.text = "<color=#00ff88>● RITMO SINUSAL ESTABLE</color>";
+                        statusDisplayText.text = "<color=#00ff88>● LATIDO NORMAL</color>";
                     }
                 }
             }
@@ -179,7 +179,7 @@ namespace ZombieCheckpoint.HCI
 
             if (statusDisplayText != null)
             {
-                statusDisplayText.text = "<color=#559988>○ TELEMETRÍA EN ESPERA (AUSCULTAR TÓRAX)</color>";
+                statusDisplayText.text = "<color=#559988>○ Pon el estetoscopio en el pecho</color>";
             }
         }
 

@@ -61,14 +61,12 @@ namespace ZombieCheckpoint.Documents
 
             if (mainDocumentText != null)
             {
-                string statusTag = data.isFalsified ? "<color=#ff3333>[IRREGULAR / VENCIDO]</color>" : "<color=#33cc33>[VIGENTE]</color>";
+                string statusTag = data.isFalsified ? "<color=#ff3333>[NO VÁLIDO]</color>" : "<color=#33cc33>[VIGENTE]</color>";
+                // Sólo los datos que sirven para decidir: el ID y el grupo sanguíneo eran decorativos.
                 mainDocumentText.text = $"<b>PASE SANITARIO</b> {statusTag}\n" +
-                                       $"------------------------\n" +
                                        $"<b>NOMBRE:</b> {data.holderName}\n" +
                                        $"<b>EDAD:</b> {data.holderAge} años\n" +
-                                       $"<b>ID:</b> {data.documentId}\n" +
-                                       $"<b>VENCE:</b> {data.expirationDate}\n" +
-                                       $"<b>GRUPO:</b> {data.bloodType}";
+                                       $"<b>VENCE:</b> {data.expirationDate}";
             }
 
             if (uvWatermarkGraphic != null)
@@ -93,13 +91,13 @@ namespace ZombieCheckpoint.Documents
                     if (currentData != null && !currentData.isFalsified)
                     {
                         // Sello forense auténtico fluorescente (Cian / Esmeralda reactivo)
-                        uvWatermarkGraphic.text = "✦ SELLO FORENSE OFICIAL ✦\nMINISTERIO DE SALUD\n[BIO-SEGURIDAD CERTIFICADA]";
+                        uvWatermarkGraphic.text = "✦ SELLO OFICIAL ✦\nAUTÉNTICO";
                         uvWatermarkGraphic.color = new Color(0.15f, 1.0f, 0.75f, uvFadeAlpha);
                     }
                     else
                     {
                         // Falsificación / irregularidad revelada
-                        uvWatermarkGraphic.text = "✖ ALERTA DE SEGURIDAD ✖\nSIN SELLO FORENSE VÁLIDO\n[COPIA IRREGULAR]";
+                        uvWatermarkGraphic.text = "✖ SIN SELLO ✖\nFALSO";
                         uvWatermarkGraphic.color = new Color(1.0f, 0.22f, 0.15f, uvFadeAlpha);
                     }
                 }

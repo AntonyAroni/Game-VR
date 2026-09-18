@@ -11,7 +11,7 @@ namespace ZombieCheckpoint.HCI.Gestures.Commands
     {
         public GestureCommandId Id => GestureCommandId.ToggleExposeTorso;
 
-        public string DisplayName => "Descubrir torso";
+        public string DisplayName => "Ver pecho";
 
         public bool CanExecute(GestureCommandContext context) => context != null && context.Torso != null;
 

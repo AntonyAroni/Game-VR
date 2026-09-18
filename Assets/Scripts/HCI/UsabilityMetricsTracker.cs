@@ -124,20 +124,21 @@ namespace ZombieCheckpoint.HCI
         public string GenerateShiftReport()
         {
             float accuracy = totalInspections > 0 ? ((float)correctVerdicts / totalInspections) * 100f : 0f;
-            string grade = accuracy >= 80f ? "<color=#00ff66>EXCELENTE (Apto para el Servicio)</color>"
-                         : accuracy >= 60f ? "<color=#ffcc00>ACEPTABLE (Riesgo Moderado)</color>"
-                         : "<color=#ff3333>CRÍTICO (Fuga de Infección)</color>";
+            string grade = accuracy >= 80f ? "<color=#00ff66>EXCELENTE</color>"
+                         : accuracy >= 60f ? "<color=#ffcc00>REGULAR</color>"
+                         : "<color=#ff3333>A MEJORAR</color>";
 
-            return $"<color=#33ccff><b>=== REPORTE DE TURNO (MÉTRICAS IHC) ===</b></color>\n" +
-                   $"------------------------------------\n" +
-                   $"• <b>Sujetos Evaluados:</b> {totalInspections}\n" +
-                   $"• <b>Precisión Global:</b> {accuracy:F1}% ({correctVerdicts}/{totalInspections})\n" +
-                   $"• <b>Tiempo Medio de Decisión:</b> {averageInspectionTime:F1} s\n" +
-                   $"• <b>Falsos Positivos:</b> {falsePositives} (Sanos aislados)\n" +
-                   $"• <b>Falsos Negativos:</b> {falseNegatives} (Infectados admitidos)\n" +
-                   $"• <b>Uso de Herramientas:</b> Linterna: {flashlightUses} | Fonendoscopio: {stethoscopeUses}\n" +
-                   $"• <b>Calificación Clínica:</b> {grade}\n\n" +
-                   $"<i>Iniciando siguiente bloque de evaluación...</i>";
+            // El detalle completo de métricas IHC se conserva en la consola para el análisis de usabilidad;
+            // al jugador sólo se le muestra lo que necesita para saber cómo lo hizo.
+            Debug.Log($"[Métricas IHC] Evaluados: {totalInspections} | Precisión: {accuracy:F1}% | " +
+                      $"Tiempo medio: {averageInspectionTime:F1} s | Falsos positivos: {falsePositives} | " +
+                      $"Falsos negativos: {falseNegatives} | Linterna: {flashlightUses} | Estetoscopio: {stethoscopeUses}");
+
+            return $"<color=#33ccff><b>FIN DEL TURNO</b></color>\n" +
+                   $"Aciertos: {correctVerdicts}/{totalInspections}\n" +
+                   $"Infectados que pasaron: {falseNegatives}\n" +
+                   $"Sanos en cuarentena: {falsePositives}\n" +
+                   $"Nota: {grade}";
         }
     }
 }

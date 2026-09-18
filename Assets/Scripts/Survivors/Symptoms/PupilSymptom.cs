@@ -13,7 +13,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
     public class PupilSymptom : MonoBehaviour, ISymptom
     {
         [Header("Configuración del Síntoma")]
-        [SerializeField] private string symptomName = "Reflejo Pupilar";
+        [SerializeField] private string symptomName = "OJOS";
         [SerializeField] private bool isPositiveForInfection = false;
 
         public string SymptomName => symptomName;
@@ -113,7 +113,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
 
             if (!isNormalFlashlight && !isUVFlashlight)
             {
-                feedbackMessage = "Se requiere una fuente de luz (Linterna Clínica o UV) para evaluar los ojos.";
+                feedbackMessage = "Usa la linterna.";
                 return false;
             }
 
@@ -133,14 +133,14 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             {
                 if (isPositiveForInfection)
                 {
-                    DiscoverSymptom("¡Bioluminiscencia corneal y venosa anómala bajo luz UV!");
-                    feedbackMessage = "¡ANOMALÍA FORENSE UV: Queratitis viral fluorescente detectada en la córnea!";
+                    DiscoverSymptom("¡Los ojos brillan en verde!");
+                    feedbackMessage = "¡Los ojos brillan en verde!";
                     return true;
                 }
                 else
                 {
                     EventBus.RequestHapticImpulse(HandSide.Both, 0.2f, 0.08f);
-                    feedbackMessage = "Examen UV negativo: Estructura ocular limpia sin fluorescencia biológica.";
+                    feedbackMessage = "Ojos normales.";
                     return true;
                 }
             }
@@ -148,14 +148,14 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             {
                 if (isPositiveForInfection)
                 {
-                    DiscoverSymptom("¡Midriasis bilateral arreactiva confirmada con linterna!");
-                    feedbackMessage = "¡ANOMALÍA OCULAR: Pupilas totalmente dilatadas e inmóviles ante la luz blanca!";
+                    DiscoverSymptom("¡Las pupilas no reaccionan a la luz!");
+                    feedbackMessage = "¡Las pupilas no reaccionan a la luz!";
                     return true;
                 }
                 else
                 {
                     EventBus.RequestHapticImpulse(HandSide.Both, 0.2f, 0.08f);
-                    feedbackMessage = "Reflejo fotomotor normal: Las pupilas se contraen simétricamente ante la luz.";
+                    feedbackMessage = "Pupilas normales.";
                     return true;
                 }
             }

@@ -12,7 +12,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
     public class HeartbeatSymptom : MonoBehaviour, ISymptom
     {
         [Header("Configuración Cardíaca")]
-        [SerializeField] private string symptomName = "Ritmo Cardíaco / Respiración";
+        [SerializeField] private string symptomName = "CORAZÓN";
         [SerializeField] private bool isPositiveForInfection = false;
         
         [Header("Parámetros de Simulación")]
@@ -40,19 +40,19 @@ namespace ZombieCheckpoint.Survivors.Symptoms
         {
             if (toolName != "Stethoscope")
             {
-                feedbackMessage = "Se requiere un estetoscopio para auscultar el tórax.";
+                feedbackMessage = "Usa el estetoscopio.";
                 return false;
             }
 
             IsDiscovered = true;
             if (isPositiveForInfection)
             {
-                feedbackMessage = "¡Taquicardia severa y estertores pulmonares irregulares!";
+                feedbackMessage = "¡Late demasiado rápido!";
                 EventBus.TriggerSymptomDiscovered(symptomName, feedbackMessage);
             }
             else
             {
-                feedbackMessage = "Ritmo sinusal regular (aprox. 72 lpm). Pulmones limpios.";
+                feedbackMessage = "Latido normal.";
             }
 
             return true;

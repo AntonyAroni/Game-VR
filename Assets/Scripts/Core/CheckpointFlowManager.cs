@@ -142,7 +142,7 @@ namespace ZombieCheckpoint.Core
 
         private void HandleSymptomDiscovered(string symptomName, string feedbackMsg)
         {
-            UpdateMonitorText($"<color=#ffcc00>⚠️ SÍNTOMA LOCALIZADO:</color>\n<b>{symptomName}</b>\n\"{feedbackMsg}\"");
+            UpdateMonitorText($"<color=#ffcc00>⚠ {symptomName}</color>\n{feedbackMsg}");
         }
 
         private IEnumerator StartNextInspectionRound()
@@ -150,9 +150,7 @@ namespace ZombieCheckpoint.Core
             CurrentState = InspectionState.WaitingNextSurvivor;
             roundNumber++;
 
-            UpdateMonitorText($"<color=#33ccff>PUESTO DE CONTROL VR - CASO #{roundNumber}</color>\n" +
-                             "------------------------------------\n" +
-                             "Aproximando nuevo ciudadano a la cabina...");
+            UpdateMonitorText($"<color=#33ccff>Llega el ciudadano #{roundNumber}...</color>");
 
             yield return new WaitForSeconds(1.0f);
 
@@ -215,12 +213,12 @@ namespace ZombieCheckpoint.Core
             CurrentState = InspectionState.Inspecting;
             EventBus.TriggerSurvivorArrived(currentSurvivor);
 
-            UpdateMonitorText($"<color=#33ccff>CIUDADANO #{roundNumber}: {survivorName.ToUpper()}</color>\n" +
-                             "------------------------------------\n" +
-                             "1. Ausculta el tórax con el estetoscopio.\n" +
-                             "2. Examina piel/ojos (V: Brazos | C: Torso).\n" +
-                             "3. Compara el pase sanitario.\n" +
-                             "4. Emite veredicto (Sello o Botón físico).");
+            // Las instrucciones completas sólo en el primer caso: después el jugador ya sabe qué hacer
+            // y repetirlas cada ronda satura el monitor (revelación progresiva).
+            string header = $"<color=#33ccff>#{roundNumber} · {survivorName}</color>\n";
+            UpdateMonitorText(roundNumber == 1
+                ? header + "Revisa corazón, ojos, brazo y pecho.\nLuego sella: APROBADO o CUARENTENA."
+                : header + "¿Sano o infectado?");
 
             Debug.Log($"[Checkpoint] Ronda #{roundNumber} iniciada con {survivorName} ({survivorAge} años). Infectado: {isInfected}. Mordedura: {hasBite}. Pulso: {hasHeartbeatAnomaly}. Pupilas: {hasPupilAnomaly}. Erupción: {hasChestRash}. Doc Vencido: {documentExpired}");
         }
@@ -363,26 +361,25 @@ namespace ZombieCheckpoint.Core
 
             if (isCorrect) correctCount++;
 
-            string title = isCorrect ? "<color=#00ff66>✔ ¡VEREDICTO CORRECTO!</color>" : "<color=#ff3333>✖ ¡ERROR EN EL VEREDICTO!</color>";
+            string title = isCorrect ? "<color=#00ff66>✔ ¡Correcto!</color>" : "<color=#ff3333>✖ Error</color>";
             string explanation = "";
             
             if (isCorrect)
             {
-                explanation = verdict == VerdictType.SendToQuarantine 
-                    ? "Sujeto con anomalías biológicas/documentales aislado a tiempo."
-                    : "Ciudadano sano y en regla admitido a la zona segura.";
+                explanation = verdict == VerdictType.SendToQuarantine
+                    ? (isTrulyInfected ? "Estaba infectado." : "Sus papeles eran falsos.")
+                    : "Estaba sano.";
                 EventBus.RequestSpatialAudio("verdict_correct", transform.position, 1.0f);
             }
             else
             {
                 explanation = verdict == VerdictType.ApprovedSafeZone
-                    ? "¡ALERTA ROJA! Has dejado pasar a un infectado a la zona segura."
-                    : "Falso Positivo: Has enviado a un civil sano a cuarentena.";
+                    ? (isTrulyInfected ? "¡Dejaste pasar a un infectado!" : "¡Sus papeles eran falsos!")
+                    : "Estaba sano.";
                 EventBus.RequestSpatialAudio("verdict_error", transform.position, 1.0f);
             }
 
-            int accuracyPercent = Mathf.RoundToInt(((float)correctCount / roundNumber) * 100f);
-            UpdateMonitorText($"{title}\n{explanation}\n\n<b>Precisión: {accuracyPercent}% ({correctCount}/{roundNumber})</b>\nSiguiente ciudadano en camino...");
+            UpdateMonitorText($"{title} {explanation}\nAciertos: {correctCount}/{roundNumber}");
 
             if (metricsTracker != null)
             {

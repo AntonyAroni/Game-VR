@@ -237,7 +237,7 @@ namespace ZombieCheckpoint.HCI.Gestures
             GestureCommandId.RaiseArms => "Levantar brazos",
             GestureCommandId.LowerArms => "Bajar brazos",
             GestureCommandId.ToggleRaiseArms => "Alternar brazos",
-            GestureCommandId.ToggleExposeTorso => "Descubrir torso",
+            GestureCommandId.ToggleExposeTorso => "Ver pecho",
             GestureCommandId.ApproveSafeZone => "APROBAR",
             GestureCommandId.SendToQuarantine => "CUARENTENA",
             GestureCommandId.HoldCivilian => "Ordenar alto",

@@ -609,7 +609,7 @@ namespace ZombieCheckpoint.Editor
             GameObject textObj = new GameObject("DocText");
             textObj.transform.SetParent(canvasObj.transform, false);
             var tmp = textObj.AddComponent<TextMeshProUGUI>();
-            tmp.text = "PASE SANITARIO [VIGENTE]\n------------------------\nNOMBRE: Sujeto-001\nEDAD: 28 años\nID: BIO-4092-Z\nVENCE: 20/12/2026\nGRUPO: O+";
+            tmp.text = "PASE SANITARIO [VÁLIDO]\nNOMBRE: Sujeto-001\nEDAD: 28 años\nVENCE: 20/12/2026";
             tmp.fontSize = 18;
             tmp.color = Color.black;
             tmp.alignment = TextAlignmentOptions.TopLeft;
@@ -619,7 +619,7 @@ namespace ZombieCheckpoint.Editor
             GameObject appStampVis = new GameObject("Stamp_Approved_Vis");
             appStampVis.transform.SetParent(canvasObj.transform, false);
             var appTmp = appStampVis.AddComponent<TextMeshProUGUI>();
-            appTmp.text = "┌───────────────────┐\n│     APROBADO      │\n│   ZONA SEGURA A   │\n│   PASE SANITARIO  │\n└───────────────────┘";
+            appTmp.text = "┌────────────┐\n│  APROBADO  │\n└────────────┘";
             appTmp.fontSize = 19;
             appTmp.lineSpacing = -10;
             appTmp.color = new Color(0f, 0.7f, 0.15f, 0.95f);
@@ -630,7 +630,7 @@ namespace ZombieCheckpoint.Editor
             GameObject quarStampVis = new GameObject("Stamp_Quarantine_Vis");
             quarStampVis.transform.SetParent(canvasObj.transform, false);
             var quarTmp = quarStampVis.AddComponent<TextMeshProUGUI>();
-            quarTmp.text = "┌───────────────────┐\n│    CUARENTENA     │\n│  AISLAMIENTO BIO  │\n│ ORDEN DETENCIÓN   │\n└───────────────────┘";
+            quarTmp.text = "┌────────────┐\n│ CUARENTENA │\n└────────────┘";
             quarTmp.fontSize = 19;
             quarTmp.lineSpacing = -10;
             quarTmp.color = new Color(0.9f, 0.12f, 0.12f, 0.95f);
@@ -641,7 +641,7 @@ namespace ZombieCheckpoint.Editor
             GameObject uvWatermarkVis = new GameObject("Stamp_UV_Watermark");
             uvWatermarkVis.transform.SetParent(canvasObj.transform, false);
             var uvTmp = uvWatermarkVis.AddComponent<TextMeshProUGUI>();
-            uvTmp.text = "✦ SELLO FORENSE OFICIAL ✦\nMINISTERIO DE SALUD\n[BIO-SEGURIDAD CERTIFICADA]";
+            uvTmp.text = "✦ SELLO OFICIAL ✦\nAUTÉNTICO";
             uvTmp.fontSize = 17;
             uvTmp.lineSpacing = -10;
             uvTmp.color = new Color(0.15f, 1.0f, 0.75f, 0.95f);
@@ -677,12 +677,12 @@ namespace ZombieCheckpoint.Editor
             // Botones de comando de examen físico (Affordance y control ergonómico)
             GameObject btnArms = CreateInspectionCommandButton(boothRoot, "Button_RaiseArms",
                 new Vector3(-0.38f, deskSurfaceY + 0.01f, 0.48f),
-                InspectionCommandType.ToggleRaiseArms, "<color=#33ccff>LEVANTE BRAZOS</color>\n<size=75%>[ V ]</size>",
+                InspectionCommandType.ToggleRaiseArms, "<color=#33ccff>BRAZOS ARRIBA</color>\n<size=75%>[ V ]</size>",
                 cyanMat, deskMat);
 
             GameObject btnTorso = CreateInspectionCommandButton(boothRoot, "Button_InspectTorso",
                 new Vector3(-0.24f, deskSurfaceY + 0.01f, 0.48f),
-                InspectionCommandType.ToggleExposeTorso, "<color=#ffaa33>DESCUBRA TORSO</color>\n<size=75%>[ C ]</size>",
+                InspectionCommandType.ToggleExposeTorso, "<color=#ffaa33>VER PECHO</color>\n<size=75%>[ C ]</size>",
                 amberMat, deskMat);
 
             // --- 12. MONITOR DE SIGNOS VITALES Y ECG DIEGÉTICO (EN ESCRITORIO) ---
@@ -732,7 +732,7 @@ namespace ZombieCheckpoint.Editor
             GameObject statusObj = new GameObject("StatusText");
             statusObj.transform.SetParent(vCanvasObj.transform, false);
             var statusTmp = statusObj.AddComponent<TextMeshProUGUI>();
-            statusTmp.text = "<color=#559988>○ TELEMETRÍA EN ESPERA</color>";
+            statusTmp.text = "<color=#559988>○ Pon el estetoscopio en el pecho</color>";
             statusTmp.fontSize = 9;
             statusTmp.color = Color.white;
             statusTmp.alignment = TextAlignmentOptions.Center;
@@ -760,7 +760,7 @@ namespace ZombieCheckpoint.Editor
             GameObject monText = new GameObject("MonitorText");
             monText.transform.SetParent(monitorCanvas.transform, false);
             var mTmp = monText.AddComponent<TextMeshProUGUI>();
-            mTmp.text = "<color=#33ccff>PUESTO DE CONTROL Y BIOSEGURIDAD VR</color>\n------------------------------------\n1. Ausculta el tórax con el estetoscopio.\n2. Enciende la linterna y examina el antebrazo.\n3. Lee el documento de identidad.\n4. Estampa el veredicto o pulsa el botón.";
+            mTmp.text = "<color=#33ccff>PUESTO DE CONTROL</color>\nEsperando al primer ciudadano...";
             mTmp.fontSize = 14;
             mTmp.color = Color.white;
             mTmp.alignment = TextAlignmentOptions.Center;

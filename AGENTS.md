@@ -133,6 +133,7 @@ Assets/Scripts/
    - **Feedback:** Confirmación inmediata multimodal (sonido + vibración háptica + cambio visual).
    - **Mapeo Natural:** Mover el ratón mueve la mano; girar con modificador orienta la muñeca; presionar hacia abajo estampa el papel.
    - **Restricciones:** Cooldowns y protecciones contra doble veredicto.
+4. **Texto para el jugador en lenguaje llano:** Todo texto visible (monitor, pasaporte, botones, avisos) usa palabras cotidianas, nunca jerga médica (*"Latido normal"*, no *"Ritmo sinusal"*; *"Las pupilas no reaccionan a la luz"*, no *"Midriasis arreactiva"*). Cada aviso ocupa como máximo **2 líneas**. Los términos técnicos se reservan para comentarios de código y `Debug.Log`.
 
 ---
 
@@ -156,7 +157,7 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 | **Ordenar Levantar / Bajar Brazos** | Tecla **V** (o **B**) | Ordena al civil elevar brazos a $82^\circ$ simétricos para examinar axilas y tórax. Evita conflicto con el botón secundario del simulador. |
 | **Retirar / Levantar Polo (Torso)** | Tecla **C** | Descubre el torso del civil revelando erupciones cutáneas o marcas. |
 | **Conmutar Modo Mando / Manos** | Tecla **H** | Alterna entre visualización y simulación de Mandos y Manos Articuladas en `XR Device Simulator`. |
-| **Mostrar / Ocultar Ayuda HUD** | Teclas **F1** / **O** | Despliega una tarjeta semi-transparente con los controles y el ángulo actual de la muñeca. |
+| **Mostrar / Ocultar Ayuda HUD** | Teclas **F1** / **O** | Despliega una tarjeta compacta de 4 líneas con los controles esenciales y la mano activa. |
 | **Simular Gesto de Mano (Comandos)** | Teclas **1 – 8** (mantener **Shift Izq** = mano izquierda) | Inyecta gestos sintéticos en el módulo de comandos por manos cuando no hay seguimiento articular real: **1** palma arriba, **2** palma abajo, **3** índice señalando, **4** pulgar arriba, **5** pulgar abajo, **6** palma al frente, **7** pinza, **8** puño. Exclusivo del Editor. |
 
 ---
@@ -284,6 +285,24 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 * **Seguimiento Sin Flotación:** Los objetos con perfil pasan a `MovementType.Instantaneous` sin suavizado: van pegados a la mano en lugar de perseguirla. Contrapartida conocida: mientras se sostienen atraviesan la mesa, porque ya no los frena la física; los sellos y la auscultación siguen funcionando porque dependen de *triggers*, no de colisiones.
 * **Coexistencia con los Gestos:** `PalmGripAnchor` publica `EventBus.OnHandGrabStateChanged`; el reconocedor ignora las posturas de una mano que sostiene algo (un puño con el pulgar arriba agarrando la linterna ya no puede emitir un veredicto) y la chuleta de la palma no se despliega mientras se lee el pasaporte.
 * **Instalación:** Menú `ZombieCheckpoint ▸ Instalar Agarre Natural de Manos` (no destructivo); `CheckpointSceneBuilder` también lo instala. Todo se aplica en tiempo de ejecución sin modificar los prefabs del rig, y `NaturalHandGripSystem` escucha `XRInteractionManager.interactableRegistered` para cubrir objetos que aparezcan más tarde.
+
+### S. Lenguaje Llano y Reducción de Carga Textual
+* **Sin Jerga Médica:** Los avisos de síntomas pasan de terminología clínica a frases cotidianas y los encabezados del monitor usan la zona examinada (`CORAZÓN`, `OJOS`, `BRAZO`, `PECHO`):
+
+  | Antes | Ahora |
+  | :--- | :--- |
+  | ¡Taquicardia severa y estertores pulmonares irregulares! | ¡Late demasiado rápido! |
+  | Ritmo sinusal regular (aprox. 72 lpm). Pulmones limpios. | Latido normal. |
+  | ¡Midriasis bilateral arreactiva confirmada con linterna! | ¡Las pupilas no reaccionan a la luz! |
+  | ¡ANOMALÍA FORENSE UV: Queratitis viral fluorescente…! | ¡Los ojos brillan en verde! |
+  | ¡Erupción eritematosa activa y petequias purpúreas…! | ¡Manchas rojas en el pecho! |
+  | ¡Marcas dentales humanas profundas con necrosis tisular! | ¡Tiene una mordedura! |
+  | ● ALERTA: TAQUICARDIA / ARRITMIA | ● LATIDO ANORMAL |
+
+* **Revelación Progresiva en el Monitor:** Las instrucciones completas se muestran sólo con el primer ciudadano; desde el segundo, el monitor muestra únicamente el nombre y *"¿Sano o infectado?"*. El resultado del veredicto cabe en dos líneas y explica la causa real (*"Estaba infectado."* / *"Sus papeles eran falsos."*).
+* **Pasaporte y Sellos Esenciales:** El pasaporte muestra sólo nombre, edad y vencimiento (el ID y el grupo sanguíneo eran decorativos y no intervenían en ninguna decisión). Los sellos y la marca UV se reducen a una palabra (`APROBADO`, `CUARENTENA`, `AUTÉNTICO`, `FALSO`).
+* **Informe de Turno Compacto:** El jugador ve aciertos, infectados que pasaron, sanos en cuarentena y nota. El detalle completo de métricas IHC (tiempo medio, falsos positivos/negativos, uso de herramientas) se conserva íntegro en la consola (`[Métricas IHC]`) para el análisis de usabilidad.
+* **Ayuda de PC en 4 Líneas:** La tarjeta de controles del simulador pasa de 13 líneas a 4 con lo imprescindible para jugar; los ajustes finos (T, Q/E, R) siguen activos y documentados en la sección 5.
 
 ---
 

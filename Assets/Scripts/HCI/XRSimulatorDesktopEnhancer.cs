@@ -45,20 +45,13 @@ namespace ZombieCheckpoint.HCI
         private bool isRightHandActive = true;
         private bool isTiltedToTable = true;
 
-        private static readonly string HelpText = 
-            "• <b>Mover Ratón:</b> Mover mano activa en 3D\n" +
-            "• <b>Clic Izquierdo:</b> AGARRAR / USAR herramienta\n" +
-            "• <b>Alt Izq (o Ctrl) + Ratón:</b> GIRAR muñeca / rayo (1:1)\n" +
-            "• <b>T:</b> Alternar inclinación mesa (35° / 0°)\n" +
-            "• <b>Q / E:</b> Subir / Bajar inclinación rayo (±5°)\n" +
-            "• <b>R:</b> Conmutar permanente Traslación / Rotación\n" +
-            "• <b>Clic Derecho (Mantener):</b> Mirar con la cámara\n" +
-            "• <b>Rueda Ratón:</b> Acercar / Alejar profundidad\n" +
-            "• <b>Tab:</b> Alternar Mano Derecha / Izquierda\n" +
-            "• <b>V (o B):</b> Ordenar Levantar / Bajar brazos (Civil)\n" +
-            "• <b>C:</b> Retirar / Levantar polo (Torso)\n" +
-            "• <b>H:</b> Conmutar Modo Mando / Manos (Simulator)\n" +
-            "• <b>F1 / O:</b> Ocultar / Mostrar esta ayuda";
+        // Sólo lo imprescindible para jugar: los ajustes finos (T, Q/E, R) siguen activos y están
+        // documentados en AGENTS.md, pero listarlos aquí saturaba la pantalla.
+        private static readonly string HelpText =
+            "<b>Ratón</b> mover mano · <b>Rueda</b> acercar · <b>Alt</b> girar\n" +
+            "<b>Clic izq</b> agarrar · <b>Clic der</b> mirar · <b>WASD</b> andar\n" +
+            "<b>Tab</b> otra mano · <b>U</b> luz UV\n" +
+            "<b>V</b> brazos arriba · <b>C</b> ver pecho · <b>F1</b> ocultar";
 
         private GUIStyle boxStyle;
         private GUIStyle textStyle;
@@ -329,30 +322,6 @@ namespace ZombieCheckpoint.HCI
             }
         }
 
-        private float GetActiveControllerPitch()
-        {
-            if (simulator == null) return 0f;
-
-            FieldInfo handStateField = isRightHandActive ? rightHandStateField : leftHandStateField;
-            if (handStateField != null && handEulerProp != null)
-            {
-                object handStateObj = handStateField.GetValue(simulator);
-                if (handStateObj != null)
-                {
-                    Vector3 hEuler = (Vector3)handEulerProp.GetValue(handStateObj, null);
-                    if (Mathf.Abs(hEuler.x) > 0.01f) return hEuler.x;
-                }
-            }
-
-            FieldInfo eulerField = isRightHandActive ? rightEulerField : leftEulerField;
-            if (eulerField != null)
-            {
-                Vector3 euler = (Vector3)eulerField.GetValue(simulator);
-                return euler.x;
-            }
-            return 0f;
-        }
-
         private void OnGUI()
         {
             if (!showHelpOverlay) return;
@@ -376,26 +345,24 @@ namespace ZombieCheckpoint.HCI
 
             Color prevColor = GUI.color;
             GUI.color = new Color(0f, 0f, 0f, 0.8f);
-            GUI.Box(new Rect(15, Screen.height - 215, 340, 200), GUIContent.none);
+            GUI.Box(new Rect(15, Screen.height - 110, 340, 95), GUIContent.none);
             GUI.color = prevColor;
 
-            GUILayout.BeginArea(new Rect(25, Screen.height - 210, 320, 190));
+            GUILayout.BeginArea(new Rect(25, Screen.height - 105, 320, 85));
             
             string handIndicator;
             if (isLookingWithCamera)
             {
-                handIndicator = "<color=#ffcc00>👁️ Modo Cámara (Mirar)</color>";
+                handIndicator = "<color=#ffcc00>Mirando</color>";
             }
             else
             {
-                string handStr = isRightHandActive ? "<color=#33ccff>🖐️ Mano Der</color>" : "<color=#ff66cc>🖐️ Mano Izq</color>";
+                string handStr = isRightHandActive ? "<color=#33ccff>Mano derecha</color>" : "<color=#ff66cc>Mano izquierda</color>";
                 bool isRotate = simulator != null && simulator.mouseTransformationMode == XRDeviceSimulator.TransformationMode.Rotate;
-                string modeStr = isRotate ? "<color=#ff9900>[ROTACIÓN]</color>" : "<color=#00ff88>[TRASLACIÓN]</color>";
-                float pitch = GetActiveControllerPitch();
-                handIndicator = $"{handStr} | {modeStr} | Inclinación: {pitch:F0}°";
+                handIndicator = isRotate ? $"{handStr} <color=#ff9900>(girando)</color>" : handStr;
             }
 
-            GUILayout.Label($"<b>CONTROLES DE SIMULADOR (PC)</b>\n{handIndicator}\n{HelpText}", textStyle);
+            GUILayout.Label($"{handIndicator}\n{HelpText}", textStyle);
             GUILayout.EndArea();
         }
     }

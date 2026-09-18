@@ -825,7 +825,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '<color=#ffaa33>DESCUBRA TORSO</color>
+  m_text: '<color=#ffaa33>VER PECHO</color>
 
     <size=75%>[ C ]</size>'
   m_isRightToLeft: 0
@@ -1332,7 +1332,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb72d93c994d9c916949580d22dfa7db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZombieCheckpoint.Survivors.Symptoms.RashSymptom
-  symptomName: "Erupci\xF3n Cut\xE1nea en Torso"
+  symptomName: PECHO
   isPositiveForInfection: 0
   clothingController: {fileID: 123795480}
   rashContainer: {fileID: 0}
@@ -1401,7 +1401,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e82a5fa631e5dd62dbe140859b0870e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZombieCheckpoint.Survivors.Symptoms.HeartbeatSymptom
-  symptomName: "Ritmo Card\xEDaco / Respiraci\xF3n"
+  symptomName: "CORAZ\xD3N"
   isPositiveForInfection: 0
   normalBPM: 72
   infectedBPM: 150
@@ -2177,7 +2177,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '<color=#33ccff>LEVANTE BRAZOS</color>
+  m_text: '<color=#33ccff>BRAZOS ARRIBA</color>
 
     <size=75%>[ V ]</size>'
   m_isRightToLeft: 0
@@ -4397,7 +4397,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u2726 SELLO FORENSE OFICIAL \u2726\nMINISTERIO DE SALUD\n[BIO-SEGURIDAD CERTIFICADA]"
+  m_text: "\u2726 SELLO OFICIAL \u2726\nAUT\xC9NTICO"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -4541,7 +4541,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 509a4e6cf0a56112e9c551d67de6593b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZombieCheckpoint.Survivors.Symptoms.PupilSymptom
-  symptomName: Reflejo Pupilar
+  symptomName: OJOS
   isPositiveForInfection: 0
   examineCooldown: 2
 --- !u!21 &706729568
@@ -5100,7 +5100,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "PASE SANITARIO [VIGENTE]\n------------------------\nNOMBRE: Sujeto-001\nEDAD: 28 a\xF1os\nID: BIO-4092-Z\nVENCE: 20/12/2026\nGRUPO: O+"
+  m_text: "PASE SANITARIO [V\xC1LIDO]\nNOMBRE: Sujeto-001\nEDAD: 28 a\xF1os\nVENCE: 20/12/2026"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -5880,7 +5880,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502     APROBADO      \u2502\n\u2502   ZONA SEGURA A   \u2502\n\u2502   PASE SANITARIO  \u2502\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518"
+  m_text: "\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502  APROBADO  \u2502\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -6305,7 +6305,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "<color=#559988>\u25CB TELEMETR\xCDA EN ESPERA</color>"
+  m_text: "<color=#559988>\u25CB Pon el estetoscopio en el pecho</color>"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -6455,7 +6455,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "<color=#33ccff>PUESTO DE CONTROL Y BIOSEGURIDAD VR</color>\n------------------------------------\n1. Ausculta el t\xF3rax con el estetoscopio.\n2. Enciende la linterna y examina el antebrazo.\n3. Lee el documento de identidad.\n4. Estampa el veredicto o pulsa el bot\xF3n."
+  m_text: "<color=#33ccff>PUESTO DE CONTROL</color>\nEsperando al primer ciudadano..."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -7731,7 +7731,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6c247206552e4d36935d349490f149c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZombieCheckpoint.Survivors.Symptoms.BiteMarkSymptom
-  symptomName: Mordedura en antebrazo
+  symptomName: BRAZO
   isPositiveForInfection: 1
   woundVisualObject: {fileID: 23140155}
   woundTransform: {fileID: 23140156}
@@ -12215,7 +12215,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502    CUARENTENA     \u2502\n\u2502  AISLAMIENTO BIO  \u2502\n\u2502 ORDEN DETENCI\xD3N   \u2502\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518"
+  m_text: "\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502 CUARENTENA \u2502\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

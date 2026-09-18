@@ -13,7 +13,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
     public class RashSymptom : MonoBehaviour, ISymptom
     {
         [Header("Configuración del Síntoma")]
-        [SerializeField] private string symptomName = "Erupción Cutánea en Torso";
+        [SerializeField] private string symptomName = "PECHO";
         [SerializeField] private bool isPositiveForInfection = false;
 
         [Header("Control de Visibilidad")]
@@ -168,7 +168,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
 
                 if (dot > 0.35f)
                 {
-                    DiscoverSymptom("¡Erupción eritematosa localizada en la caja torácica!");
+                    DiscoverSymptom("¡Manchas rojas en el pecho!");
                 }
             }
         }
@@ -191,20 +191,20 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             bool isExposed = clothingController != null && clothingController.IsTorsoExposed;
             if (!isExposed)
             {
-                feedbackMessage = "El torso está cubierto por la ropa. Retira o levanta el polo primero.";
+                feedbackMessage = "Primero levántale la camiseta.";
                 return false;
             }
 
             if (!isPositiveForInfection)
             {
-                feedbackMessage = "Piel del torso despejada, sin signos de petequias o eritema infeccioso.";
+                feedbackMessage = "Pecho sin manchas.";
                 return true;
             }
 
-            DiscoverSymptom("Erupción infecciosa en torso confirmada.");
+            DiscoverSymptom("¡Manchas rojas en el pecho!");
             feedbackMessage = isUvActive 
-                ? "¡Fluorescencia vírica verde intensa en tejido vascular bajo haz UV!"
-                : "¡Erupción eritematosa activa y petequias purpúreas en la piel del pecho!";
+                ? "¡Las manchas brillan en verde!"
+                : "¡Manchas rojas en el pecho!";
             return true;
         }
 
