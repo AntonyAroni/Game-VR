@@ -40,12 +40,12 @@ namespace ZombieCheckpoint.HCI.Grip
         [SerializeField] private bool enableGraspToGrab = true;
         [Tooltip("Curvatura media de los cuatro dedos para considerar la mano cerrada.")]
         [Range(0f, 1f)]
-        [SerializeField] private float graspCloseThreshold = 0.52f;
+        [SerializeField] private float graspCloseThreshold = 0.50f;
         [Tooltip("Curvatura media por debajo de la cual la mano se considera abierta (histéresis).")]
         [Range(0f, 1f)]
-        [SerializeField] private float graspOpenThreshold = 0.36f;
+        [SerializeField] private float graspOpenThreshold = 0.35f;
         [Tooltip("Distancia máxima entre la sonda y un objeto para que cerrar la mano lo agarre.")]
-        [SerializeField] private float graspReach = 0.11f;
+        [SerializeField] private float graspReach = 0.16f;
 
         private static readonly Dictionary<IXRSelectInteractor, PalmGripAnchor> Registry = new Dictionary<IXRSelectInteractor, PalmGripAnchor>();
         private static readonly List<XRHandSubsystem> SubsystemBuffer = new List<XRHandSubsystem>();
@@ -143,12 +143,8 @@ namespace ZombieCheckpoint.HCI.Grip
             EnsurePoseTransforms();
             Registry[interactor] = this;
 
-            if (nearCaster != null && graspProbe != null)
-            {
-                // La detección cercana pasa a centrarse en la mano, no en las yemas: con el radio
-                // de 10 cm del caster sigue cubriendo el punto de pinza para los agarres finos.
-                nearCaster.castOrigin = graspProbe;
-            }
+            // Mantener nearCaster.castOrigin en su ancla nativa calibrada para garantizar que
+            // la esfera de detección de proximidad cubra permanentemente la mano y dedos.
 
             XRInputButtonReader selectInput = interactor.selectInput;
             if (selectInput != null)
@@ -372,9 +368,7 @@ namespace ZombieCheckpoint.HCI.Grip
         private bool HasReachableHoverTarget(out IXRInteractable closest)
         {
             closest = null;
-            if (graspProbe == null) return false;
-
-            Vector3 probe = graspProbe.position;
+            Vector3 probe = (graspProbe != null && handTracked) ? graspProbe.position : transform.position;
             float bestSqr = graspReach * graspReach;
             var hovered = interactor.interactablesHovered;
 
@@ -399,21 +393,28 @@ namespace ZombieCheckpoint.HCI.Grip
                 }
             }
 
+            // Si el interactor ya está sobrevolando un interactable cercano, permitir agarre inmediato por puño
+            if (closest == null && hovered.Count > 0)
+            {
+                closest = hovered[0];
+            }
+
             return closest != null;
         }
 
         private void SetPalmEngaged(bool engage)
         {
-            if (attachController == null || palmPose == null || pinchPose == null)
+            if (attachController == null || palmPose == null)
             {
                 palmEngaged = false;
                 return;
             }
 
-            if (palmEngaged == engage) return;
+            Transform targetAttach = engage ? palmPose : (pinchPose != null ? pinchPose : transform);
+            if (palmEngaged == engage && attachController.transformToFollow == targetAttach) return;
 
             palmEngaged = engage;
-            attachController.transformToFollow = engage ? palmPose : pinchPose;
+            attachController.transformToFollow = targetAttach;
         }
 
         private void OnSelectEntered(SelectEnterEventArgs args)

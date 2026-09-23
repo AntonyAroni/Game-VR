@@ -82,6 +82,12 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
             // Grab the current platform permission group based on the current platform in use.
             var currentPlatform = XRPlatformUnderstanding.CurrentPlatform;
             m_CurrentPlatformPermissionGroup = m_PermissionGroups.Find(g => g.platformType == currentPlatform);
+            if (m_CurrentPlatformPermissionGroup == null && m_PermissionGroups.Count > 0)
+            {
+                // Respaldo resiliente: Si no hay grupo específico para la plataforma actual, usar el primer grupo disponible
+                m_CurrentPlatformPermissionGroup = m_PermissionGroups[0];
+            }
+
             if (m_CurrentPlatformPermissionGroup == null)
             {
                 // No permission group defined for the current platform.
@@ -99,15 +105,28 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
                 if (!permission.enabled)
                     continue;
 
-                // If permission is not granted and not requested, add it to the list of permissions to request
-                if (!Permission.HasUserAuthorizedPermission(permission.permissionId) && !permission.requested)
+                string permId = permission.permissionId;
+                // En Meta Quest, la cadena oficial de tracking de manos es com.oculus.permission.HAND_TRACKING
+                if (currentPlatform == XRPlatformType.OpenXRMeta && permId == "android.permission.HAND_TRACKING")
                 {
-                    permissionIds.Add(permission.permissionId);
+                    permId = "com.oculus.permission.HAND_TRACKING";
+                }
+
+                // If permission is not granted and not requested, add it to the list of permissions to request
+                if (!Permission.HasUserAuthorizedPermission(permId) && !permission.requested)
+                {
+                    permissionIds.Add(permId);
                     permission.requested = true;
                 }
                 else
                 {
-                    Debug.Log($"User has permission for: {permission.permissionId}", this);
+                    Debug.Log($"[PermissionsManager] User already has permission for: {permId}", this);
+                    if (Permission.HasUserAuthorizedPermission(permId) && !permission.granted)
+                    {
+                        permission.granted = true;
+                        permission.responseReceived = true;
+                        permission.onPermissionGranted?.Invoke(permission.permissionId);
+                    }
                 }
             }
 

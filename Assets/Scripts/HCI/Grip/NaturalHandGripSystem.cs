@@ -67,12 +67,16 @@ namespace ZombieCheckpoint.HCI.Grip
 
             if (installed == 0)
             {
-                installed = InstallAnchorsByPinchPose();
+                installed = InstallAnchorsDirect();
             }
 
             if (installed == 0)
             {
                 Debug.LogWarning("[NaturalHandGrip] No se encontraron interactores de mano articulada: el agarre natural queda inactivo.");
+            }
+            else
+            {
+                Debug.Log($"[NaturalHandGrip] ✅ {installed} ancla(s) de agarre en palma instaladas correctamente.");
             }
         }
 
@@ -89,19 +93,24 @@ namespace ZombieCheckpoint.HCI.Grip
         }
 
         /// <summary>
-        /// Respaldo para rigs sin gestor de modalidad: identifica los interactores de mano
-        /// porque su attach sigue una pose de pinza.
+        /// Localiza directamente todos los interactores Near-Far en la escena y les instala
+        /// el PalmGripAnchor asignando la lateralidad correspondiente (izq/der).
         /// </summary>
-        private static int InstallAnchorsByPinchPose()
+        private static int InstallAnchorsDirect()
         {
             int installed = 0;
             var interactors = FindObjectsByType<NearFarInteractor>(FindObjectsInactive.Include);
             foreach (var candidate in interactors)
             {
-                if (!candidate.TryGetComponent(out InteractionAttachController attach)) continue;
-                if (attach.transformToFollow == null || !attach.transformToFollow.name.Contains("Pinch")) continue;
+                HandSide side = HandSide.Right;
+                string objName = candidate.gameObject.name.ToLowerInvariant();
+                string parentName = candidate.transform.parent != null ? candidate.transform.parent.name.ToLowerInvariant() : "";
 
-                HandSide side = candidate.handedness == InteractorHandedness.Left ? HandSide.Left : HandSide.Right;
+                if (candidate.handedness == InteractorHandedness.Left || objName.Contains("left") || parentName.Contains("left"))
+                {
+                    side = HandSide.Left;
+                }
+
                 var anchor = candidate.gameObject.GetOrAddComponent<PalmGripAnchor>();
                 anchor.Initialize(candidate, side);
                 installed++;
