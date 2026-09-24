@@ -65,6 +65,31 @@ namespace ZombieCheckpoint.Editor
             var report = BuildPipeline.BuildPlayer(buildPlayerOptions);
             Debug.Log($"[QuestBuildHelper] Build result: {report.summary.result} (Total time: {report.summary.totalTime.TotalSeconds:F1}s)");
         }
+
+        [MenuItem("Zombie Checkpoint/3. Build Quest APK Only")]
+        public static void BuildQuestApkOnly()
+        {
+            ConfigureQuestSettings();
+
+            if (!System.IO.Directory.Exists("Builds"))
+            {
+                System.IO.Directory.CreateDirectory("Builds");
+            }
+
+            var buildPath = "Builds/ZombieCheckpoint.apk";
+            var buildPlayerOptions = new BuildPlayerOptions
+            {
+                scenes = new[] { "Assets/Scenes/CheckpointBoothScene.unity" },
+                locationPathName = buildPath,
+                target = BuildTarget.Android,
+                targetGroup = BuildTargetGroup.Android,
+                options = BuildOptions.None
+            };
+
+            Debug.Log($"[QuestBuildHelper] Starting standalone APK build to: {buildPath}...");
+            var report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+            Debug.Log($"[QuestBuildHelper] Build result: {report.summary.result} (Total time: {report.summary.totalTime.TotalSeconds:F1}s)");
+        }
     }
 
     /// <summary>

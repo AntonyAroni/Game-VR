@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using ZombieCheckpoint.Core;
 using ZombieCheckpoint.Documents;
 using ZombieCheckpoint.Tools;
 
@@ -29,6 +30,7 @@ namespace ZombieCheckpoint.HCI.Grip
 
             if (grab.TryGetComponent(out FlashlightTool _))
             {
+                grab.gameObject.GetOrAddComponent<DirectInteractionOnlyFilter>();
                 ApplyPowerGrip(grab, Vector3.up, HandAxis.ThumbSide, Vector3.forward, HandAxis.PalmOut,
                                handleBias: -0.2f, radiusMeters: 0.02f);
                 return true;
@@ -36,6 +38,7 @@ namespace ZombieCheckpoint.HCI.Grip
 
             if (grab.TryGetComponent(out StampTool _))
             {
+                grab.gameObject.GetOrAddComponent<DirectInteractionOnlyFilter>();
                 ApplyPowerGrip(grab, Vector3.up, HandAxis.ThumbSide, Vector3.forward, HandAxis.FingersForward,
                                handleBias: 0f, radiusMeters: 0.013f);
                 return true;
@@ -43,12 +46,14 @@ namespace ZombieCheckpoint.HCI.Grip
 
             if (grab.TryGetComponent(out StethoscopeTool _))
             {
+                grab.gameObject.GetOrAddComponent<DirectInteractionOnlyFilter>();
                 ApplyStethoscopeGrip(grab);
                 return true;
             }
 
             if (grab.TryGetComponent(out DocumentInteractable _))
             {
+                grab.gameObject.GetOrAddComponent<DirectInteractionOnlyFilter>();
                 // Apoyado en la palma, cara hacia fuera y texto hacia los dedos; sujeto por su mitad inferior.
                 ApplyPowerGrip(grab, Vector3.forward, HandAxis.FingersForward, Vector3.up, HandAxis.PalmOut,
                                handleBias: -0.25f, radiusMeters: 0.005f);

@@ -38,6 +38,7 @@ namespace ZombieCheckpoint.Core
 
         private int roundNumber = 0;
         private int correctCount = 0;
+        private int lastCivilianIndex = -1;
 
         [Header("Modelos de Torso Descubierto (Opcional)")]
         [SerializeField] private GameObject maleTorsoPrefab;
@@ -238,7 +239,16 @@ namespace ZombieCheckpoint.Core
 
             if (civilianPrefabs != null && civilianPrefabs.Count > 0)
             {
-                int index = (roundNumber - 1) % civilianPrefabs.Count;
+                int index = 0;
+                if (civilianPrefabs.Count > 1)
+                {
+                    do
+                    {
+                        index = Random.Range(0, civilianPrefabs.Count);
+                    } while (index == lastCivilianIndex);
+                }
+                lastCivilianIndex = index;
+
                 GameObject prefab = civilianPrefabs[index];
                 if (prefab != null)
                 {

@@ -13,7 +13,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
     public class RashSymptom : MonoBehaviour, ISymptom
     {
         [Header("Configuración del Síntoma")]
-        [SerializeField] private string symptomName = "PECHO";
+        [SerializeField] private string symptomName = "PECHO (ERUPCIÓN)";
         [SerializeField] private bool isPositiveForInfection = false;
 
         [Header("Control de Visibilidad")]
@@ -191,19 +191,19 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             bool isExposed = clothingController != null && clothingController.IsTorsoExposed;
             if (!isExposed)
             {
-                feedbackMessage = "Primero levántale la camiseta.";
+                feedbackMessage = "Primero presiona VER PECHO.";
                 return false;
             }
 
             if (!isPositiveForInfection)
             {
-                feedbackMessage = "Pecho sin manchas.";
+                feedbackMessage = "Pecho sano, sin marcas.";
                 return true;
             }
 
             DiscoverSymptom("¡Manchas rojas en el pecho!");
             feedbackMessage = isUvActive 
-                ? "¡Las manchas brillan en verde!"
+                ? "¡Las manchas brillan en verde fosforescente!"
                 : "¡Manchas rojas en el pecho!";
             return true;
         }

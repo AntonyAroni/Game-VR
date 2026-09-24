@@ -20,6 +20,7 @@ namespace ZombieCheckpoint.HCI
         [SerializeField] private TextMeshProUGUI bpmDisplayText;
         [SerializeField] private TextMeshProUGUI statusDisplayText;
         [SerializeField] private Image heartPulseIcon;
+        [SerializeField] private Renderer statusLedRenderer;
 
         [Header("Dimensiones del Osciloscopio")]
         [SerializeField] private int textureWidth = 256;
@@ -41,6 +42,7 @@ namespace ZombieCheckpoint.HCI
 
         private float wavePhase = 0f;
         private float heartIconScale = 1f;
+        private Coroutine testRoutine;
 
         private void Awake()
         {
@@ -112,11 +114,64 @@ namespace ZombieCheckpoint.HCI
                 if (stObj != null) statusDisplayText = stObj.GetComponent<TextMeshProUGUI>();
             }
 
+            if (statusLedRenderer == null)
+            {
+                var ledTrans = transform.Find("Status_LED");
+                if (ledTrans != null) statusLedRenderer = ledTrans.GetComponent<Renderer>();
+            }
+
             SetStandbyState();
+        }
+
+        public void TriggerTestPulse()
+        {
+            if (testRoutine != null) StopCoroutine(testRoutine);
+            testRoutine = StartCoroutine(TestSequenceRoutine());
+        }
+
+        private IEnumerator TestSequenceRoutine()
+        {
+            EventBus.RequestSpatialAudio("monitor_beep", transform.position, 1.0f);
+            EventBus.RequestHapticImpulse(HandSide.Both, 0.35f, 0.08f);
+
+            bool wasAuscultating = isAuscultating;
+            isAuscultating = true;
+            currentBpm = 72f;
+            isAbnormal = false;
+
+            if (bpmDisplayText != null)
+            {
+                bpmDisplayText.text = "<b>72</b> <size=60%>BPM</size>";
+                bpmDisplayText.color = new Color(1f, 0.9f, 0.2f);
+            }
+
+            if (statusDisplayText != null)
+            {
+                statusDisplayText.text = "<color=#ffff33><b>PRUEBA: EQUIPO LISTO</b></color>\n<size=80%><color=#88ffbb>Usa estetoscopio en el pecho</color></size>";
+            }
+
+            if (statusLedRenderer != null && statusLedRenderer.sharedMaterial != null)
+            {
+                statusLedRenderer.sharedMaterial.color = Color.yellow;
+            }
+
+            yield return new WaitForSeconds(3.5f);
+
+            if (!wasAuscultating)
+            {
+                SetStandbyState();
+            }
+            testRoutine = null;
         }
 
         private void HandleAuscultationStateChanged(bool auscultating, float targetBpm, bool abnormal)
         {
+            if (testRoutine != null)
+            {
+                StopCoroutine(testRoutine);
+                testRoutine = null;
+            }
+
             isAuscultating = auscultating;
             currentBpm = targetBpm;
             isAbnormal = abnormal;
@@ -132,7 +187,11 @@ namespace ZombieCheckpoint.HCI
                     }
                     if (statusDisplayText != null)
                     {
-                        statusDisplayText.text = "<color=#ff3333>● LATIDO ANORMAL</color>";
+                        statusDisplayText.text = "<color=#ff3333><b>⚠ LATIDO ANORMAL</b></color>\n<size=80%><color=#ff7777>¡Corazón acelerado (>150 BPM)!</color></size>";
+                    }
+                    if (statusLedRenderer != null && statusLedRenderer.sharedMaterial != null)
+                    {
+                        statusLedRenderer.sharedMaterial.color = new Color(1f, 0.1f, 0.1f);
                     }
                 }
                 else
@@ -144,7 +203,11 @@ namespace ZombieCheckpoint.HCI
                     }
                     if (statusDisplayText != null)
                     {
-                        statusDisplayText.text = "<color=#00ff88>● LATIDO NORMAL</color>";
+                        statusDisplayText.text = "<color=#00ff88><b>♥ LATIDO NORMAL</b></color>\n<size=80%><color=#88ffbb>Ritmo regular (70-75 BPM)</color></size>";
+                    }
+                    if (statusLedRenderer != null && statusLedRenderer.sharedMaterial != null)
+                    {
+                        statusLedRenderer.sharedMaterial.color = new Color(0f, 1f, 0.4f);
                     }
                 }
             }
@@ -179,7 +242,12 @@ namespace ZombieCheckpoint.HCI
 
             if (statusDisplayText != null)
             {
-                statusDisplayText.text = "<color=#559988>○ Pon el estetoscopio en el pecho</color>";
+                statusDisplayText.text = "<color=#55ffbb><b>MONITOR CARDÍACO</b></color>\n<size=80%><color=#88ccaa>Usa estetoscopio en el pecho</color></size>";
+            }
+
+            if (statusLedRenderer != null && statusLedRenderer.sharedMaterial != null)
+            {
+                statusLedRenderer.sharedMaterial.color = new Color(0f, 0.45f, 0.2f);
             }
         }
 

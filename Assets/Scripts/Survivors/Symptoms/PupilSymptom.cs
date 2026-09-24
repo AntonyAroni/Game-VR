@@ -13,7 +13,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
     public class PupilSymptom : MonoBehaviour, ISymptom
     {
         [Header("Configuración del Síntoma")]
-        [SerializeField] private string symptomName = "OJOS";
+        [SerializeField] private string symptomName = "OJOS (PUPILAS)";
         [SerializeField] private bool isPositiveForInfection = false;
 
         public string SymptomName => symptomName;
@@ -133,14 +133,14 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             {
                 if (isPositiveForInfection)
                 {
-                    DiscoverSymptom("¡Los ojos brillan en verde!");
-                    feedbackMessage = "¡Los ojos brillan en verde!";
+                    DiscoverSymptom("¡Los ojos brillan en verde fosforescente!");
+                    feedbackMessage = "¡Los ojos brillan en verde fosforescente!";
                     return true;
                 }
                 else
                 {
                     EventBus.RequestHapticImpulse(HandSide.Both, 0.2f, 0.08f);
-                    feedbackMessage = "Ojos normales.";
+                    feedbackMessage = "Ojos sanos, no brillan.";
                     return true;
                 }
             }
@@ -148,14 +148,14 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             {
                 if (isPositiveForInfection)
                 {
-                    DiscoverSymptom("¡Las pupilas no reaccionan a la luz!");
-                    feedbackMessage = "¡Las pupilas no reaccionan a la luz!";
+                    DiscoverSymptom("¡Las pupilas no se mueven con la luz!");
+                    feedbackMessage = "¡Las pupilas no se mueven con la luz!";
                     return true;
                 }
                 else
                 {
                     EventBus.RequestHapticImpulse(HandSide.Both, 0.2f, 0.08f);
-                    feedbackMessage = "Pupilas normales.";
+                    feedbackMessage = "Pupilas sanas, reaccionan a la luz.";
                     return true;
                 }
             }

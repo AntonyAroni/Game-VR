@@ -29,8 +29,14 @@ namespace ZombieCheckpoint.Tools
         [SerializeField] private LayerMask detectionLayer = ~0;
         [SerializeField] private bool startsOn = true;
         [SerializeField] private GameObject volumetricBeamObject;
+        [Header("Físicas y Reposición")]
+        [SerializeField] private bool autoRespawnIfFallen = true;
+        [SerializeField] private float respawnFloorY = 0.40f;
 
         private XRGrabInteractable grabInteractable;
+        private Rigidbody toolRigidbody;
+        private Vector3 initialPosition;
+        private Quaternion initialRotation;
         private HandSide currentHoldingHand = HandSide.Right;
         private bool isOn = true;
         private int lastToggleFrame = -1;
@@ -46,6 +52,12 @@ namespace ZombieCheckpoint.Tools
         private void Awake()
         {
             grabInteractable = GetComponent<XRGrabInteractable>();
+            toolRigidbody = GetComponent<Rigidbody>();
+            initialPosition = transform.position;
+            initialRotation = transform.rotation;
+
+            gameObject.GetOrAddComponent<ZombieCheckpoint.HCI.DirectInteractionOnlyFilter>();
+
             EnsureLightReference();
             CacheMaterials();
             EnsureVolumetricBeam();
@@ -319,6 +331,12 @@ namespace ZombieCheckpoint.Tools
                 }
             }
 
+            // Reposición automática si el objeto cae accidentalmente de la mesa al suelo
+            if (!IsGrabbed && autoRespawnIfFallen && transform.position.y < respawnFloorY)
+            {
+                ResetToDesk();
+            }
+
             if (!isOn || spotLight == null) return;
 
             // Haz de luz proyectado hacia adelante (cono volumétrico tolerante con SphereCast)
@@ -356,6 +374,16 @@ namespace ZombieCheckpoint.Tools
             if (doc != null)
             {
                 doc.ReceiveUVLight(currentMode == FlashlightMode.Ultraviolet);
+            }
+        }
+
+        public void ResetToDesk()
+        {
+            transform.SetPositionAndRotation(initialPosition, initialRotation);
+            if (toolRigidbody != null)
+            {
+                toolRigidbody.linearVelocity = Vector3.zero;
+                toolRigidbody.angularVelocity = Vector3.zero;
             }
         }
     }

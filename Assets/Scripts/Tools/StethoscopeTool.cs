@@ -19,7 +19,14 @@ namespace ZombieCheckpoint.Tools
         [SerializeField] private Collider bellCollider;
         [SerializeField] private float detectionDistance = 0.45f;
 
+        [Header("Físicas y Reposición")]
+        [SerializeField] private bool autoRespawnIfFallen = true;
+        [SerializeField] private float respawnFloorY = 0.40f;
+
         private XRGrabInteractable grabInteractable;
+        private Rigidbody toolRigidbody;
+        private Vector3 initialPosition;
+        private Quaternion initialRotation;
         private HeartbeatSymptom currentTargetSymptom;
         private HandSide currentHoldingHand = HandSide.Right;
         private HeartbeatSymptom[] sceneHeartbeatSymptoms;
@@ -30,6 +37,12 @@ namespace ZombieCheckpoint.Tools
         private void Awake()
         {
             grabInteractable = GetComponent<XRGrabInteractable>();
+            toolRigidbody = GetComponent<Rigidbody>();
+            initialPosition = transform.position;
+            initialRotation = transform.rotation;
+
+            gameObject.GetOrAddComponent<ZombieCheckpoint.HCI.DirectInteractionOnlyFilter>();
+
             if (bellCollider == null)
             {
                 bellCollider = GetComponentInChildren<Collider>();
@@ -76,7 +89,14 @@ namespace ZombieCheckpoint.Tools
 
         private void Update()
         {
-            if (!IsGrabbed) return;
+            if (!IsGrabbed)
+            {
+                if (autoRespawnIfFallen && transform.position.y < respawnFloorY)
+                {
+                    ResetToDesk();
+                }
+                return;
+            }
 
             // Comprobación de proximidad robusta contra cualquier objetivo cardíaco en escena
             bool needsRefresh = (sceneHeartbeatSymptoms == null || sceneHeartbeatSymptoms.Length == 0);
@@ -163,6 +183,16 @@ namespace ZombieCheckpoint.Tools
             if (currentTargetSymptom != null && other.gameObject == currentTargetSymptom.gameObject)
             {
                 StopListening();
+            }
+        }
+
+        public void ResetToDesk()
+        {
+            transform.SetPositionAndRotation(initialPosition, initialRotation);
+            if (toolRigidbody != null)
+            {
+                toolRigidbody.linearVelocity = Vector3.zero;
+                toolRigidbody.angularVelocity = Vector3.zero;
             }
         }
     }

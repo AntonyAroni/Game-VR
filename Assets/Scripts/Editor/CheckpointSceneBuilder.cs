@@ -697,15 +697,74 @@ namespace ZombieCheckpoint.Editor
             GameObject vBezel = GameObject.CreatePrimitive(PrimitiveType.Cube);
             vBezel.name = "Screen_Bezel";
             vBezel.transform.SetParent(vitalMonitor.transform, false);
-            vBezel.transform.localPosition = new Vector3(0f, 0.01f, -0.51f);
-            vBezel.transform.localScale = new Vector3(0.92f, 0.84f, 0.04f);
+            vBezel.transform.localPosition = new Vector3(0f, -0.01f, -0.51f);
+            vBezel.transform.localScale = new Vector3(0.92f, 0.80f, 0.04f);
             vBezel.GetComponent<Renderer>().sharedMaterial = new Material(urpShader) { color = new Color(0.06f, 0.08f, 0.07f) };
             Object.DestroyImmediate(vBezel.GetComponent<Collider>());
 
+            // Placa con Título en el cabezal del monitor (visibilidad inmediata de la función)
+            GameObject vHeaderPlate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            vHeaderPlate.name = "Header_Plate";
+            vHeaderPlate.transform.SetParent(vitalMonitor.transform, false);
+            vHeaderPlate.transform.localPosition = new Vector3(0f, 0.44f, -0.51f);
+            vHeaderPlate.transform.localScale = new Vector3(0.88f, 0.09f, 0.03f);
+            vHeaderPlate.GetComponent<Renderer>().sharedMaterial = new Material(urpShader) { color = new Color(0.03f, 0.05f, 0.04f) };
+            Object.DestroyImmediate(vHeaderPlate.GetComponent<Collider>());
+
+            GameObject vHeaderCanvasObj = new GameObject("HeaderCanvas");
+            vHeaderCanvasObj.transform.SetParent(vHeaderPlate.transform, false);
+            vHeaderCanvasObj.transform.localPosition = new Vector3(0f, 0f, -0.55f);
+            vHeaderCanvasObj.transform.localScale = new Vector3(0.0035f, 0.0035f, 0.0035f);
+            var vHeaderCanvas = vHeaderCanvasObj.AddComponent<Canvas>();
+            vHeaderCanvas.renderMode = RenderMode.WorldSpace;
+            var headerTmp = vHeaderCanvasObj.AddComponent<TextMeshProUGUI>();
+            headerTmp.text = "<b><color=#00ff88>♥ MONITOR CARDÍACO (ECG)</color></b>";
+            headerTmp.fontSize = 11;
+            headerTmp.alignment = TextAlignmentOptions.Center;
+            var headerRect = vHeaderCanvasObj.GetComponent<RectTransform>();
+            headerRect.sizeDelta = new Vector2(250f, 24f);
+
+            // LED de estado del monitor
+            GameObject vLed = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            vLed.name = "Status_LED";
+            vLed.transform.SetParent(vitalMonitor.transform, false);
+            vLed.transform.localPosition = new Vector3(-0.40f, -0.42f, -0.52f);
+            vLed.transform.localScale = new Vector3(0.04f, 0.04f, 0.04f);
+            var ledMat = new Material(urpShader) { color = new Color(0f, 0.5f, 0.2f) };
+            ledMat.EnableKeyword("_EMISSION");
+            ledMat.SetColor("_EmissionColor", new Color(0f, 0.8f, 0.3f));
+            vLed.GetComponent<Renderer>().sharedMaterial = ledMat;
+            Object.DestroyImmediate(vLed.GetComponent<Collider>());
+
+            // Botón físico interactivo para probar el monitor [PROBAR]
+            GameObject vTestBtn = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            vTestBtn.name = "Button_TestMonitor";
+            vTestBtn.transform.SetParent(vitalMonitor.transform, false);
+            vTestBtn.transform.localPosition = new Vector3(0.32f, -0.42f, -0.52f);
+            vTestBtn.transform.localScale = new Vector3(0.24f, 0.06f, 0.03f);
+            vTestBtn.GetComponent<Renderer>().sharedMaterial = new Material(urpShader) { color = new Color(0.25f, 0.22f, 0.10f) };
+            var btnCol = vTestBtn.GetComponent<Collider>();
+            if (btnCol != null) btnCol.isTrigger = true;
+            vTestBtn.AddComponent<ZombieCheckpoint.HCI.MonitorTestButton>();
+
+            GameObject btnCanvasObj = new GameObject("BtnCanvas");
+            btnCanvasObj.transform.SetParent(vTestBtn.transform, false);
+            btnCanvasObj.transform.localPosition = new Vector3(0f, 0f, -0.55f);
+            btnCanvasObj.transform.localScale = new Vector3(0.003f, 0.003f, 0.003f);
+            var btnCanvas = btnCanvasObj.AddComponent<Canvas>();
+            btnCanvas.renderMode = RenderMode.WorldSpace;
+            var btnTmp = btnCanvasObj.AddComponent<TextMeshProUGUI>();
+            btnTmp.text = "<b><color=#ffcc33>[ PROBAR ]</color></b>";
+            btnTmp.fontSize = 11;
+            btnTmp.alignment = TextAlignmentOptions.Center;
+            var btnRect = btnCanvasObj.GetComponent<RectTransform>();
+            btnRect.sizeDelta = new Vector2(80f, 20f);
+
+            // Pantalla CRT
             GameObject vCanvasObj = new GameObject("MonitorCanvas");
             vCanvasObj.transform.SetParent(vitalMonitor.transform, false);
-            vCanvasObj.transform.localPosition = new Vector3(0f, 0.01f, -0.54f);
-            vCanvasObj.transform.localScale = new Vector3(0.0016f, 0.0016f, 0.0016f);
+            vCanvasObj.transform.localPosition = new Vector3(0f, -0.01f, -0.54f);
+            vCanvasObj.transform.localScale = new Vector3(0.0015f, 0.0015f, 0.0015f);
 
             var vCanvas = vCanvasObj.AddComponent<Canvas>();
             vCanvas.renderMode = RenderMode.WorldSpace;
@@ -715,30 +774,30 @@ namespace ZombieCheckpoint.Editor
             ecgObj.transform.SetParent(vCanvasObj.transform, false);
             ecgObj.AddComponent<RawImage>();
             var ecgRect = ecgObj.GetComponent<RectTransform>();
-            ecgRect.sizeDelta = new Vector2(150f, 60f);
-            ecgRect.anchoredPosition = new Vector2(0f, 6f);
+            ecgRect.sizeDelta = new Vector2(160f, 60f);
+            ecgRect.anchoredPosition = new Vector2(0f, 4f);
 
             GameObject bpmObj = new GameObject("BpmText");
             bpmObj.transform.SetParent(vCanvasObj.transform, false);
             var bpmTmp = bpmObj.AddComponent<TextMeshProUGUI>();
             bpmTmp.text = "<b>--</b> <size=60%>BPM</size>";
-            bpmTmp.fontSize = 20;
+            bpmTmp.fontSize = 22;
             bpmTmp.color = new Color(0.3f, 0.95f, 0.6f);
             bpmTmp.alignment = TextAlignmentOptions.Center;
             var bpmRect = bpmObj.GetComponent<RectTransform>();
-            bpmRect.sizeDelta = new Vector2(150f, 26f);
-            bpmRect.anchoredPosition = new Vector2(0f, 44f);
+            bpmRect.sizeDelta = new Vector2(160f, 28f);
+            bpmRect.anchoredPosition = new Vector2(0f, 42f);
 
             GameObject statusObj = new GameObject("StatusText");
             statusObj.transform.SetParent(vCanvasObj.transform, false);
             var statusTmp = statusObj.AddComponent<TextMeshProUGUI>();
-            statusTmp.text = "<color=#559988>○ Pon el estetoscopio en el pecho</color>";
-            statusTmp.fontSize = 9;
+            statusTmp.text = "<color=#55ffbb><b>MONITOR CARDÍACO</b></color>\n<size=80%><color=#88ccaa>Usa estetoscopio en el pecho</color></size>";
+            statusTmp.fontSize = 11;
             statusTmp.color = Color.white;
             statusTmp.alignment = TextAlignmentOptions.Center;
             var statusRect = statusObj.GetComponent<RectTransform>();
-            statusRect.sizeDelta = new Vector2(150f, 18f);
-            statusRect.anchoredPosition = new Vector2(0f, -28f);
+            statusRect.sizeDelta = new Vector2(170f, 26f);
+            statusRect.anchoredPosition = new Vector2(0f, -32f);
 
             vitalMonitor.AddComponent<VitalSignsMonitor>();
 

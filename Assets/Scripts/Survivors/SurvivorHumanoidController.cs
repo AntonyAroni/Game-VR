@@ -124,11 +124,12 @@ namespace ZombieCheckpoint.Survivors
             rightForeArmRestRot = Quaternion.Euler(0f, 15f, 0f);
             leftForeArmRestRot = Quaternion.Euler(0f, 15f, 0f);
 
-            // Postura de inspección clínica: ambos brazos elevados a ~82° exponiendo axilas, costados y región pectoral
-            rightArmInspectRot = Quaternion.Euler(355.1f, 351.9f, 298.1f);
-            leftArmInspectRot = Quaternion.Euler(355.1f, 351.9f, 298.1f);
-            rightForeArmInspectRot = Quaternion.Euler(0f, 30f, 0f);
-            leftForeArmInspectRot = Quaternion.Euler(0f, 30f, 0f);
+            // Postura de inspección clínica natural: hombros elevados a 47°, 25° hacia adelante (scaption),
+            // y antebrazos flexionados a 70° en los codos (manos cómodamente frente al tórax, exponiendo axilas y costados).
+            rightArmInspectRot = Quaternion.Euler(350f, 340f, 325f);
+            leftArmInspectRot = Quaternion.Euler(350f, 340f, 325f);
+            rightForeArmInspectRot = Quaternion.Euler(0f, 70f, 0f);
+            leftForeArmInspectRot = Quaternion.Euler(0f, 70f, 0f);
 
             if (leftArm != null) leftArm.localRotation = leftArmRestRot;
             if (rightArm != null) rightArm.localRotation = rightArmRestRot;
@@ -200,6 +201,8 @@ namespace ZombieCheckpoint.Survivors
                 {
                     rightHandGrab = rightHand.gameObject.GetOrAddComponent<XRGrabInteractable>();
                 }
+                var rFilter = rightHand.gameObject.GetOrAddComponent<ZombieCheckpoint.HCI.DirectInteractionOnlyFilter>();
+                rFilter.MaxDistance = 0.35f;
             }
 
             // Mano izquierda
@@ -223,6 +226,8 @@ namespace ZombieCheckpoint.Survivors
                 {
                     leftHandGrab = leftHand.gameObject.GetOrAddComponent<XRGrabInteractable>();
                 }
+                var lFilter = leftHand.gameObject.GetOrAddComponent<ZombieCheckpoint.HCI.DirectInteractionOnlyFilter>();
+                lFilter.MaxDistance = 0.35f;
             }
 
             // Auscultación en el pecho
@@ -418,17 +423,19 @@ namespace ZombieCheckpoint.Survivors
                     if (isLeftHandGrabbed && leftGrabbingInteractor != null)
                     {
                         Vector3 dirToHand = (leftGrabbingInteractor.position - leftArm.position).normalized;
-                        leftArm.rotation = Quaternion.LookRotation(dirToHand, Vector3.up) * Quaternion.Euler(0f, -90f, 0f);
+                        Quaternion lookRot = Quaternion.LookRotation(dirToHand, Vector3.up) * Quaternion.Euler(0f, -90f, 0f);
+                        leftArm.rotation = Quaternion.Slerp(leftArm.rotation, lookRot, Time.deltaTime * 10f);
                         float dist = Vector3.Distance(leftArm.position, leftGrabbingInteractor.position);
                         float bend = Mathf.Clamp((0.55f - dist) * 110f, 15f, 95f);
-                        leftForeArm.localRotation = Quaternion.Euler(bend, -90f, 0f);
+                        Quaternion targetBend = Quaternion.Euler(bend, -90f, 0f);
+                        leftForeArm.localRotation = Quaternion.Slerp(leftForeArm.localRotation, targetBend, Time.deltaTime * 10f);
                     }
                     else
                     {
                         Quaternion targetArm = isInspectionPose ? leftArmInspectRot : leftArmRestRot;
                         Quaternion targetFore = isInspectionPose ? leftForeArmInspectRot : leftForeArmRestRot;
-                        leftArm.localRotation = Quaternion.Slerp(leftArm.localRotation, targetArm, Time.deltaTime * 5f);
-                        leftForeArm.localRotation = Quaternion.Slerp(leftForeArm.localRotation, targetFore, Time.deltaTime * 5f);
+                        leftArm.localRotation = Quaternion.Slerp(leftArm.localRotation, targetArm, Time.deltaTime * 3.5f);
+                        leftForeArm.localRotation = Quaternion.Slerp(leftForeArm.localRotation, targetFore, Time.deltaTime * 3.5f);
                     }
                 }
 
@@ -438,17 +445,19 @@ namespace ZombieCheckpoint.Survivors
                     if (isRightHandGrabbed && rightGrabbingInteractor != null)
                     {
                         Vector3 dirToHand = (rightGrabbingInteractor.position - rightArm.position).normalized;
-                        rightArm.rotation = Quaternion.LookRotation(dirToHand, Vector3.up) * Quaternion.Euler(0f, 90f, 0f);
+                        Quaternion lookRot = Quaternion.LookRotation(dirToHand, Vector3.up) * Quaternion.Euler(0f, 90f, 0f);
+                        rightArm.rotation = Quaternion.Slerp(rightArm.rotation, lookRot, Time.deltaTime * 10f);
                         float dist = Vector3.Distance(rightArm.position, rightGrabbingInteractor.position);
                         float bend = Mathf.Clamp((0.55f - dist) * 110f, 15f, 95f);
-                        rightForeArm.localRotation = Quaternion.Euler(bend, 90f, 0f);
+                        Quaternion targetBend = Quaternion.Euler(bend, 90f, 0f);
+                        rightForeArm.localRotation = Quaternion.Slerp(rightForeArm.localRotation, targetBend, Time.deltaTime * 10f);
                     }
                     else
                     {
                         Quaternion targetArm = isInspectionPose ? rightArmInspectRot : rightArmRestRot;
                         Quaternion targetFore = isInspectionPose ? rightForeArmInspectRot : rightForeArmRestRot;
-                        rightArm.localRotation = Quaternion.Slerp(rightArm.localRotation, targetArm, Time.deltaTime * 5f);
-                        rightForeArm.localRotation = Quaternion.Slerp(rightForeArm.localRotation, targetFore, Time.deltaTime * 5f);
+                        rightArm.localRotation = Quaternion.Slerp(rightArm.localRotation, targetArm, Time.deltaTime * 3.5f);
+                        rightForeArm.localRotation = Quaternion.Slerp(rightForeArm.localRotation, targetFore, Time.deltaTime * 3.5f);
                     }
                 }
             }

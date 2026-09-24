@@ -21,8 +21,14 @@ namespace ZombieCheckpoint.Tools
         [SerializeField] private VerdictType stampVerdict = VerdictType.ApprovedSafeZone;
         [SerializeField] private float cooldownSeconds = 0.6f;
         [SerializeField] private Collider baseTriggerCollider;
+        [Header("Físicas y Reposición")]
+        [SerializeField] private bool autoRespawnIfFallen = true;
+        [SerializeField] private float respawnFloorY = 0.40f;
 
         private XRGrabInteractable grabInteractable;
+        private Rigidbody toolRigidbody;
+        private Vector3 initialPosition;
+        private Quaternion initialRotation;
         private HandSide currentHoldingHand = HandSide.Right;
         private float lastStampTime = -10f;
         private DocumentInteractable[] sceneDocuments;
@@ -34,6 +40,12 @@ namespace ZombieCheckpoint.Tools
         private void Awake()
         {
             grabInteractable = GetComponent<XRGrabInteractable>();
+            toolRigidbody = GetComponent<Rigidbody>();
+            initialPosition = transform.position;
+            initialRotation = transform.rotation;
+
+            gameObject.GetOrAddComponent<ZombieCheckpoint.HCI.DirectInteractionOnlyFilter>();
+
             ResolveBaseCollider();
         }
 
@@ -143,6 +155,24 @@ namespace ZombieCheckpoint.Tools
         private void OnTriggerEnter(Collider other)
         {
             ApplyToTarget(other.gameObject);
+        }
+
+        private void Update()
+        {
+            if (!IsGrabbed && autoRespawnIfFallen && transform.position.y < respawnFloorY)
+            {
+                ResetToDesk();
+            }
+        }
+
+        public void ResetToDesk()
+        {
+            transform.SetPositionAndRotation(initialPosition, initialRotation);
+            if (toolRigidbody != null)
+            {
+                toolRigidbody.linearVelocity = Vector3.zero;
+                toolRigidbody.angularVelocity = Vector3.zero;
+            }
         }
     }
 }
