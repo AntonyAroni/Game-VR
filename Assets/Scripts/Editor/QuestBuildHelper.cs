@@ -89,6 +89,20 @@ namespace ZombieCheckpoint.Editor
             Debug.Log($"[QuestBuildHelper] Starting standalone APK build to: {buildPath}...");
             var report = BuildPipeline.BuildPlayer(buildPlayerOptions);
             Debug.Log($"[QuestBuildHelper] Build result: {report.summary.result} (Total time: {report.summary.totalTime.TotalSeconds:F1}s)");
+
+            if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            {
+                var prueba2Path = "Builds/prueba2.apk";
+                try
+                {
+                    System.IO.File.Copy(buildPath, prueba2Path, overwrite: true);
+                    Debug.Log($"[QuestBuildHelper] ✅ Copia sincronizada generada con éxito en: {prueba2Path}");
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"[QuestBuildHelper] No se pudo copiar a {prueba2Path}: {ex.Message}");
+                }
+            }
         }
     }
 
@@ -96,7 +110,7 @@ namespace ZombieCheckpoint.Editor
     /// Preprocesador automático de escena para compilaciones de Meta Quest (Android).
     /// Elimina el simulador de ratón/teclado de la escena del build para que el visor físico
     /// Meta Quest tome el control absoluto del tracking 6DOF y la altura de ojos sobre el suelo,
-    /// y asegura el arranque incondicional del gestor de manos articuladas.
+    /// y asegura el arranque incondicional del gestor de manos articuladas y PlayerStationManager.
     /// </summary>
     public class QuestBuildSceneProcessor : UnityEditor.Build.IProcessSceneWithReport
     {
@@ -114,7 +128,7 @@ namespace ZombieCheckpoint.Editor
                     Debug.Log("[QuestBuildSceneProcessor] ✅ XR Device Simulator eliminado del build de Quest.");
                 }
 
-                // 2. Garantizar que XROrigin use modo Floor y altura ergonómica
+                // 2. Garantizar que XROrigin use modo Floor y desactive gravedad innecesaria
                 var origin = GameObject.Find("XR Origin Hands (XR Rig)") ?? GameObject.Find("XR Origin (XR Rig)");
                 if (origin != null)
                 {
@@ -125,6 +139,17 @@ namespace ZombieCheckpoint.Editor
                         xrOrigin.CameraYOffset = 1.65f;
                         Debug.Log("[QuestBuildSceneProcessor] ✅ XROrigin configurado en modo Floor con altura 1.65m.");
                     }
+
+                    foreach (var mb in origin.GetComponentsInChildren<MonoBehaviour>())
+                    {
+                        if (mb != null && mb.GetType().Name.Contains("Gravity"))
+                        {
+                            mb.enabled = false;
+                        }
+                    }
+
+                    var cc = origin.GetComponent<CharacterController>();
+                    if (cc != null) cc.radius = 0.05f;
                 }
 
                 // 3. Garantizar que OpenXRHandSubsystemManager quede activado para el build
@@ -133,6 +158,14 @@ namespace ZombieCheckpoint.Editor
                 {
                     handSubsystemManager.enabled = true;
                     Debug.Log("[QuestBuildSceneProcessor] ✅ OpenXRHandSubsystemManager habilitado para el build.");
+                }
+
+                // 4. Garantizar PlayerStationManager activo
+                var stationMgr = Object.FindAnyObjectByType<ZombieCheckpoint.HCI.PlayerStationManager>(FindObjectsInactive.Include);
+                if (stationMgr != null)
+                {
+                    stationMgr.enabled = true;
+                    Debug.Log("[QuestBuildSceneProcessor] ✅ PlayerStationManager habilitado para el build.");
                 }
             }
         }

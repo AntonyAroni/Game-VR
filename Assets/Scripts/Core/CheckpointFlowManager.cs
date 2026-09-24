@@ -90,6 +90,15 @@ namespace ZombieCheckpoint.Core
                 if (ql != null) quarantineAlarmLight = ql.GetComponent<Light>();
             }
 
+            // Si existe un Survivor_Subject estático de plantilla en la escena, removerlo
+            // para que la primera ronda inicie con la marcha diegética limpia desde el pasillo.
+            var placeholderSubject = GameObject.Find("Survivor_Subject");
+            if (placeholderSubject != null)
+            {
+                Destroy(placeholderSubject);
+                currentSurvivor = null;
+            }
+
             AutoPopulatePrefabsIfEmpty();
         }
 
