@@ -202,7 +202,7 @@ namespace ZombieCheckpoint.Survivors
                     rightHandGrab = rightHand.gameObject.GetOrAddComponent<XRGrabInteractable>();
                 }
                 var rFilter = rightHand.gameObject.GetOrAddComponent<ZombieCheckpoint.HCI.DirectInteractionOnlyFilter>();
-                rFilter.MaxDistance = 0.35f;
+                rFilter.MaxDistance = 1.20f;
             }
 
             // Mano izquierda
@@ -227,7 +227,7 @@ namespace ZombieCheckpoint.Survivors
                     leftHandGrab = leftHand.gameObject.GetOrAddComponent<XRGrabInteractable>();
                 }
                 var lFilter = leftHand.gameObject.GetOrAddComponent<ZombieCheckpoint.HCI.DirectInteractionOnlyFilter>();
-                lFilter.MaxDistance = 0.35f;
+                lFilter.MaxDistance = 1.20f;
             }
 
             // Auscultación en el pecho
