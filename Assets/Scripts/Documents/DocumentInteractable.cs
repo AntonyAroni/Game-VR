@@ -16,10 +16,9 @@ namespace ZombieCheckpoint.Documents
         [Header("Referencias")]
         [SerializeField] private DocumentView documentView;
 
-        [Header("Físicas y Reposición")]
-        [SerializeField] private bool autoRespawnIfFallen = true;
-        [SerializeField] private float respawnFloorY = 0.50f;
-        [SerializeField] private float maxDistanceAllowed = 1.25f;
+        private bool autoRespawnIfFallen = true;
+        private float respawnFloorY = 0.50f;
+        private float maxDistanceAllowed = 1.25f;
         
         public DocumentData CurrentData { get; private set; }
         public VerdictType AppliedVerdict { get; private set; } = VerdictType.None;
