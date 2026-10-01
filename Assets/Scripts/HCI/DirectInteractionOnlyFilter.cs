@@ -23,8 +23,8 @@ namespace ZombieCheckpoint.HCI
     public class DirectInteractionOnlyFilter : MonoBehaviour, IXRSelectFilter, IXRHoverFilter
     {
         [Header("Distancia Máxima de Alcance en Mesa")]
-        [Tooltip("Distancia máxima en metros entre la mano/cámara y el objeto en el mostrador.")]
-        [SerializeField] private float maxDistance = 1.35f;
+        [Tooltip("Distancia máxima en metros entre la mano/cámara y el objeto en el mostrador para iniciar agarre.")]
+        [SerializeField] private float maxDistance = 1.65f;
 
         [Header("Comportamiento Físico")]
         [SerializeField] private bool configureGrabInteractable = true;
@@ -90,8 +90,17 @@ namespace ZombieCheckpoint.HCI
             return IsDirectInteractionAllowed(interactor);
         }
 
-        public bool Process(IXRSelectInteractor interactor, IXRSelectInteractable _)
+        public bool Process(IXRSelectInteractor interactor, IXRSelectInteractable selectInteractable)
         {
+            // Principio de IHC (Robustez y Continuidad de Agarre):
+            // Si el objeto YA está seleccionado por este interactor o se encuentra en agarre activo,
+            // NUNCA interrumpir ni forzar la caída del objeto mientras el usuario extienda su brazo
+            // hacia el paciente para examinarlo.
+            if (selectInteractable != null && (selectInteractable.isSelected || (interactor != null && interactor.IsSelecting(selectInteractable))))
+            {
+                return true;
+            }
+
             return IsDirectInteractionAllowed(interactor);
         }
 
@@ -100,8 +109,17 @@ namespace ZombieCheckpoint.HCI
             if (interactor == null) return false;
 
             // 1. Permitir NearFarInteractor tanto en Near (palma) como en Far (gesto de pellizco/pinch).
-            // Comprobar únicamente que el objeto esté dentro del alcance ergonómico del mostrador.
-            float dist = Vector3.Distance(interactor.transform.position, transform.position);
+            // Comprobar únicamente que el objeto esté dentro del alcance ergonómico del mostrador para iniciar la interacción.
+            Vector3 interactorPos = interactor.transform.position;
+            float dist = Vector3.Distance(interactorPos, transform.position);
+
+            // Respaldo ergonómico con la cámara del jugador por si el origen del interactor tiene desfase
+            if (Camera.main != null)
+            {
+                float camDist = Vector3.Distance(Camera.main.transform.position, transform.position);
+                dist = Mathf.Min(dist, camDist);
+            }
+
             return dist <= maxDistance;
         }
     }

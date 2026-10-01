@@ -651,39 +651,81 @@ namespace ZombieCheckpoint.Editor
             uvRect.localPosition = new Vector3(0f, -25f, 0f);
             uvWatermarkVis.SetActive(false);
 
-            // --- 11. BOTONES FÍSICOS DE MESA ---
-            GameObject btnGreen = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            btnGreen.name = "Button_Approved";
-            btnGreen.transform.SetParent(boothRoot.transform);
-            btnGreen.transform.position = new Vector3(0.55f, deskSurfaceY + 0.02f, 0.62f);
-            btnGreen.transform.localScale = new Vector3(0.1f, 0.03f, 0.1f);
-            btnGreen.GetComponent<Renderer>().sharedMaterial = greenMat;
-            btnGreen.AddComponent<XRSimpleInteractable>();
-            var decBtnGreen = btnGreen.AddComponent<DecisionButton>();
-            typeof(DecisionButton).GetField("buttonVerdict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(decBtnGreen, VerdictType.ApprovedSafeZone);
+            // --- 11. PORTAPAPELES DIEGÉTICO CON CHECKLIST CLÍNICO EN MESA ---
+            // Principio de IHC: Despejar la mesa de botones arcade para interacción pura con sellos y gestos
+            GameObject clipboard = new GameObject("Inspection_Checklist_Clipboard");
+            clipboard.transform.SetParent(boothRoot.transform);
+            clipboard.transform.position = new Vector3(0.52f, deskSurfaceY + 0.012f, 0.58f);
+            clipboard.transform.rotation = Quaternion.Euler(6f, -12f, 0f);
 
-            GameObject btnRed = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            btnRed.name = "Button_Quarantine";
-            btnRed.transform.SetParent(boothRoot.transform);
-            btnRed.transform.position = new Vector3(-0.55f, deskSurfaceY + 0.02f, 0.58f);
-            btnRed.transform.localScale = new Vector3(0.1f, 0.03f, 0.1f);
-            btnRed.GetComponent<Renderer>().sharedMaterial = redMat;
-            btnRed.AddComponent<XRSimpleInteractable>();
-            var decBtnRed = btnRed.AddComponent<DecisionButton>();
-            typeof(DecisionButton).GetField("buttonVerdict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(decBtnRed, VerdictType.SendToQuarantine);
+            GameObject board = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            board.name = "Clipboard_Board";
+            board.transform.SetParent(clipboard.transform, false);
+            board.transform.localScale = new Vector3(0.26f, 0.012f, 0.34f);
+            board.GetComponent<Renderer>().sharedMaterial = deskMat;
 
-            // Botones de comando de examen físico (Affordance y control ergonómico)
-            GameObject btnArms = CreateInspectionCommandButton(boothRoot, "Button_RaiseArms",
-                new Vector3(-0.38f, deskSurfaceY + 0.01f, 0.48f),
-                InspectionCommandType.ToggleRaiseArms, "<color=#33ccff>BRAZOS ARRIBA</color>\n<size=75%>[ V ]</size>",
-                cyanMat, deskMat);
+            GameObject paper = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            paper.name = "Clipboard_Paper";
+            paper.transform.SetParent(clipboard.transform, false);
+            paper.transform.localPosition = new Vector3(0f, 0.007f, -0.01f);
+            paper.transform.localScale = new Vector3(0.23f, 0.002f, 0.30f);
+            Material paperSheetMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            paperSheetMat.color = new Color(0.97f, 0.96f, 0.93f);
+            paper.GetComponent<Renderer>().sharedMaterial = paperSheetMat;
 
-            GameObject btnTorso = CreateInspectionCommandButton(boothRoot, "Button_InspectTorso",
-                new Vector3(-0.24f, deskSurfaceY + 0.01f, 0.48f),
-                InspectionCommandType.ToggleExposeTorso, "<color=#ffaa33>VER PECHO</color>\n<size=75%>[ C ]</size>",
-                amberMat, deskMat);
+            GameObject clipObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            clipObj.name = "Clipboard_Clip";
+            clipObj.transform.SetParent(clipboard.transform, false);
+            clipObj.transform.localPosition = new Vector3(0f, 0.015f, 0.14f);
+            clipObj.transform.localScale = new Vector3(0.08f, 0.014f, 0.025f);
+            Material clipMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            clipMat.color = new Color(0.75f, 0.77f, 0.80f);
+            clipMat.SetFloat("_Metallic", 0.9f);
+            clipMat.SetFloat("_Smoothness", 0.8f);
+            clipObj.GetComponent<Renderer>().sharedMaterial = clipMat;
+
+            GameObject chkCanvasObj = new GameObject("Checklist_Canvas");
+            chkCanvasObj.transform.SetParent(clipboard.transform, false);
+            chkCanvasObj.transform.localPosition = new Vector3(0f, 0.009f, -0.01f);
+            chkCanvasObj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            var chkCanvas = chkCanvasObj.AddComponent<Canvas>();
+            chkCanvas.renderMode = RenderMode.WorldSpace;
+            var chkCanvasRect = chkCanvasObj.GetComponent<RectTransform>();
+            chkCanvasRect.sizeDelta = new Vector2(360f, 480f);
+            chkCanvasRect.localScale = Vector3.one * 0.00062f;
+
+            GameObject titleObj = new GameObject("Title_TMP");
+            titleObj.transform.SetParent(chkCanvasObj.transform, false);
+            var titleTMP = titleObj.AddComponent<TextMeshProUGUI>();
+            titleTMP.text = "PROTOCOLO SANITARIO";
+            titleTMP.fontSize = 22f;
+            titleTMP.fontStyle = FontStyles.Bold;
+            titleTMP.alignment = TextAlignmentOptions.Center;
+            titleTMP.color = new Color(0.10f, 0.18f, 0.35f);
+            var chkTitleRect = titleObj.GetComponent<RectTransform>();
+            chkTitleRect.anchorMin = new Vector2(0f, 0.88f);
+            chkTitleRect.anchorMax = new Vector2(1f, 1f);
+            chkTitleRect.offsetMin = Vector2.zero;
+            chkTitleRect.offsetMax = Vector2.zero;
+
+            GameObject tasksObj = new GameObject("Tasks_TMP");
+            tasksObj.transform.SetParent(chkCanvasObj.transform, false);
+            var tasksTMP = tasksObj.AddComponent<TextMeshProUGUI>();
+            tasksTMP.fontSize = 17f;
+            tasksTMP.lineSpacing = 16f;
+            tasksTMP.alignment = TextAlignmentOptions.TopLeft;
+            tasksTMP.color = new Color(0.15f, 0.15f, 0.15f);
+            var tasksRect = tasksObj.GetComponent<RectTransform>();
+            tasksRect.anchorMin = new Vector2(0.04f, 0.04f);
+            tasksRect.anchorMax = new Vector2(0.96f, 0.86f);
+            tasksRect.offsetMin = Vector2.zero;
+            tasksRect.offsetMax = Vector2.zero;
+
+            var chkCtrl = clipboard.AddComponent<ZombieCheckpoint.HCI.InspectionChecklistController>();
+            typeof(ZombieCheckpoint.HCI.InspectionChecklistController).GetField("checklistText", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(chkCtrl, tasksTMP);
+            typeof(ZombieCheckpoint.HCI.InspectionChecklistController).GetField("titleText", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(chkCtrl, titleTMP);
 
             // --- 12. MONITOR DE SIGNOS VITALES Y ECG DIEGÉTICO (EN ESCRITORIO) ---
             GameObject vitalMonitor = GameObject.CreatePrimitive(PrimitiveType.Cube);

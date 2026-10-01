@@ -93,13 +93,13 @@ namespace ZombieCheckpoint.HCI.Gestures
             canvasGroup.blocksRaycasts = false;
 
             var canvasRect = canvasObj.GetComponent<RectTransform>();
-            canvasRect.sizeDelta = new Vector2(360f, 230f);
-            canvasRect.localScale = Vector3.one * 0.0005f; // ~18 cm de ancho, legible en la mano
+            canvasRect.sizeDelta = new Vector2(380f, 360f);
+            canvasRect.localScale = Vector3.one * 0.00045f; // ~17 cm de alto/ancho en la mano
 
             var panelObj = new GameObject("Panel");
             panelObj.transform.SetParent(canvasObj.transform, false);
             var panelImage = panelObj.AddComponent<Image>();
-            panelImage.color = new Color(0.03f, 0.07f, 0.09f, 0.82f);
+            panelImage.color = new Color(0.02f, 0.05f, 0.07f, 0.88f);
             panelImage.raycastTarget = false;
             var panelRect = panelObj.GetComponent<RectTransform>();
             panelRect.anchorMin = Vector2.zero;
@@ -110,27 +110,28 @@ namespace ZombieCheckpoint.HCI.Gestures
             var titleObj = new GameObject("TitleLabel");
             titleObj.transform.SetParent(canvasObj.transform, false);
             var titleLabel = titleObj.AddComponent<TextMeshProUGUI>();
-            titleLabel.text = "ÓRDENES CON LA MANO";
-            titleLabel.fontSize = 20f;
+            titleLabel.text = "PROTOCOLO SANITARIO";
+            titleLabel.fontSize = 18f;
             titleLabel.fontStyle = FontStyles.Bold;
             titleLabel.alignment = TextAlignmentOptions.Center;
-            titleLabel.color = new Color(0.55f, 0.85f, 1f);
+            titleLabel.color = new Color(0.95f, 0.85f, 0.40f); // Dorado cálido visible
             titleLabel.raycastTarget = false;
             var titleRect = titleObj.GetComponent<RectTransform>();
-            titleRect.anchoredPosition = new Vector2(0f, 92f);
-            titleRect.sizeDelta = new Vector2(340f, 28f);
+            titleRect.anchoredPosition = new Vector2(0f, 158f);
+            titleRect.sizeDelta = new Vector2(360f, 26f);
 
             var contentObj = new GameObject("ContentLabel");
             contentObj.transform.SetParent(canvasObj.transform, false);
             contentLabel = contentObj.AddComponent<TextMeshProUGUI>();
-            contentLabel.fontSize = 18f;
+            contentLabel.fontSize = 14f;
+            contentLabel.lineSpacing = 10f;
             contentLabel.alignment = TextAlignmentOptions.TopLeft;
             contentLabel.color = new Color(0.88f, 0.92f, 0.95f);
             contentLabel.richText = true;
             contentLabel.raycastTarget = false;
             var contentRect = contentObj.GetComponent<RectTransform>();
             contentRect.anchoredPosition = new Vector2(0f, -14f);
-            contentRect.sizeDelta = new Vector2(330f, 180f);
+            contentRect.sizeDelta = new Vector2(350f, 310f);
 
             canvasObj.SetActive(false);
         }
