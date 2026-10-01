@@ -164,9 +164,16 @@ namespace ZombieCheckpoint.Tools
 
         private void Update()
         {
-            if (!IsGrabbed && autoRespawnIfFallen && transform.position.y < respawnFloorY)
+            if (!IsGrabbed && autoRespawnIfFallen)
             {
-                ResetToDesk();
+                bool fallenToFloor = transform.position.y < respawnFloorY;
+                bool thrownFarAway = Vector3.Distance(transform.position, initialPosition) > 1.35f;
+                bool thrownPastBooth = transform.position.z > 1.15f;
+
+                if (fallenToFloor || thrownFarAway || thrownPastBooth)
+                {
+                    ResetToDesk();
+                }
             }
         }
 

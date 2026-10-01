@@ -843,12 +843,13 @@ namespace ZombieCheckpoint.Editor
 
             vitalMonitor.AddComponent<VitalSignsMonitor>();
 
-            // --- 12. MONITOR DIEGÉTICO SUPERIOR ---
+            // --- 12. MONITOR DIEGÉTICO LATERAL (PARED IZQUIERDA) ---
             GameObject monitor = GameObject.CreatePrimitive(PrimitiveType.Cube);
             monitor.name = "Diagnostic_Monitor";
             monitor.transform.SetParent(boothRoot.transform);
-            monitor.transform.position = new Vector3(0f, 1.95f, 1.95f);
-            monitor.transform.localScale = new Vector3(1.3f, 0.65f, 0.05f);
+            monitor.transform.position = new Vector3(-2.62f, 1.85f, 0.85f);
+            monitor.transform.rotation = Quaternion.Euler(0f, 70f, 0f);
+            monitor.transform.localScale = new Vector3(1.4f, 0.75f, 0.06f);
             monitor.GetComponent<Renderer>().sharedMaterial = deskMat;
 
             GameObject monitorCanvas = new GameObject("MonitorCanvas");
@@ -862,7 +863,7 @@ namespace ZombieCheckpoint.Editor
             monText.transform.SetParent(monitorCanvas.transform, false);
             var mTmp = monText.AddComponent<TextMeshProUGUI>();
             mTmp.text = "<color=#33ccff>PUESTO DE CONTROL</color>\nEsperando al primer ciudadano...";
-            mTmp.fontSize = 14;
+            mTmp.fontSize = 17;
             mTmp.color = Color.white;
             mTmp.alignment = TextAlignmentOptions.Center;
             var mRect = monText.GetComponent<RectTransform>();

@@ -331,10 +331,17 @@ namespace ZombieCheckpoint.Tools
                 }
             }
 
-            // Reposición automática si el objeto cae accidentalmente de la mesa al suelo
-            if (!IsGrabbed && autoRespawnIfFallen && transform.position.y < respawnFloorY)
+            // Reposición automática si el objeto cae accidentalmente de la mesa al suelo o se lanza lejos
+            if (!IsGrabbed && autoRespawnIfFallen)
             {
-                ResetToDesk();
+                bool fallenToFloor = transform.position.y < respawnFloorY;
+                bool thrownFarAway = Vector3.Distance(transform.position, initialPosition) > 1.35f;
+                bool thrownPastBooth = transform.position.z > 1.15f;
+
+                if (fallenToFloor || thrownFarAway || thrownPastBooth)
+                {
+                    ResetToDesk();
+                }
             }
 
             if (!isOn || spotLight == null) return;
