@@ -183,51 +183,42 @@ namespace ZombieCheckpoint.HCI
         }
 
         /// <summary>
-        /// Genera el texto resumen formateado para el HUD de muñeca / HandCheatSheet.
+        /// Genera el texto del checklist idéntico tanto para el portapapeles de mesa como para el HUD de muñeca.
         /// </summary>
-        public string GetSummaryText()
+        public string GetFormattedChecklistText(bool forDarkBackground = false)
         {
             summaryBuilder.Clear();
             for (int i = 0; i < taskCompleted.Length; i++)
             {
                 if (taskCompleted[i])
                 {
-                    summaryBuilder.Append("<color=#4CAF50>✔</color> <color=#9E9E9E><s>")
-                                  .Append(taskDescriptions[i])
+                    string checkColor = forDarkBackground ? "#66BB6A" : "#2E7D32";
+                    string textColor = forDarkBackground ? "#9E9E9E" : "#555555";
+                    summaryBuilder.Append($"<color={checkColor}><b>[✔]</b></color> <color={textColor}><s>")
+                                  .Append(i + 1).Append(". ").Append(taskDescriptions[i])
                                   .Append("</s></color>\n");
                 }
                 else
                 {
-                    summaryBuilder.Append("<color=#FFB300>○</color> ")
-                                  .Append(taskDescriptions[i])
-                                  .Append('\n');
+                    string boxColor = forDarkBackground ? "#EF5350" : "#C62828";
+                    string textColor = forDarkBackground ? "#FFFFFF" : "#1A1A1A";
+                    summaryBuilder.Append($"<color={boxColor}><b>[  ]</b></color> <color={textColor}><b>")
+                                  .Append(i + 1).Append(". ").Append(taskDescriptions[i])
+                                  .Append("</b></color>\n");
                 }
             }
             return summaryBuilder.ToString();
         }
 
+        /// <summary>
+        /// Resumen público para consultas externas (HUD de muñeca).
+        /// </summary>
+        public string GetSummaryText() => GetFormattedChecklistText(forDarkBackground: true);
+
         private void UpdateVisualDisplay()
         {
             if (checklistText == null) return;
-
-            summaryBuilder.Clear();
-            for (int i = 0; i < taskCompleted.Length; i++)
-            {
-                if (taskCompleted[i])
-                {
-                    summaryBuilder.Append("<color=#2E7D32><b>[✔]</b></color> <color=#424242><s>")
-                                  .Append(i + 1).Append(". ").Append(taskDescriptions[i])
-                                  .Append("</s></color>\n");
-                }
-                else
-                {
-                    summaryBuilder.Append("<color=#C62828><b>[  ]</b></color> <color=#1A1A1A><b>")
-                                  .Append(i + 1).Append(". ").Append(taskDescriptions[i])
-                                  .Append("</b></color>\n");
-                }
-            }
-
-            checklistText.text = summaryBuilder.ToString();
+            checklistText.text = GetFormattedChecklistText(forDarkBackground: false);
         }
 
         private void EnsureVisualComponents()

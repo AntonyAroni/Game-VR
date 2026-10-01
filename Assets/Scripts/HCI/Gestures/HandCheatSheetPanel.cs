@@ -110,11 +110,11 @@ namespace ZombieCheckpoint.HCI.Gestures
             var titleObj = new GameObject("TitleLabel");
             titleObj.transform.SetParent(canvasObj.transform, false);
             var titleLabel = titleObj.AddComponent<TextMeshProUGUI>();
-            titleLabel.text = "TRIAJE Y GESTOS";
+            titleLabel.text = "PROTOCOLO SANITARIO";
             titleLabel.fontSize = 18f;
             titleLabel.fontStyle = FontStyles.Bold;
             titleLabel.alignment = TextAlignmentOptions.Center;
-            titleLabel.color = new Color(0.55f, 0.85f, 1f);
+            titleLabel.color = new Color(0.95f, 0.85f, 0.40f); // Dorado cálido visible
             titleLabel.raycastTarget = false;
             var titleRect = titleObj.GetComponent<RectTransform>();
             titleRect.anchoredPosition = new Vector2(0f, 158f);

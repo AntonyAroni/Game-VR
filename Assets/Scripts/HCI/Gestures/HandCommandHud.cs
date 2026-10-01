@@ -28,14 +28,14 @@ namespace ZombieCheckpoint.HCI.Gestures
         [SerializeField] private bool enableCheatSheet = true;
         [Tooltip("Coseno mínimo entre la normal de la palma y la dirección a la cabeza.")]
         [Range(0.3f, 1f)]
-        [SerializeField] private float palmFacingDot = 0.70f;
+        [SerializeField] private float palmFacingDot = 0.55f;
         [Tooltip("Coseno mínimo entre la dirección de los dedos y el eje vertical.")]
         [Range(0f, 1f)]
-        [SerializeField] private float fingersUpDot = 0.35f;
+        [SerializeField] private float fingersUpDot = 0.15f;
         [Tooltip("Distancia máxima entre la cabeza y la palma para consultar la chuleta.")]
-        [SerializeField] private float cheatSheetMaxDistance = 0.75f;
+        [SerializeField] private float cheatSheetMaxDistance = 0.85f;
         [Tooltip("Tiempo que hay que sostener la palma antes de desplegar la chuleta.")]
-        [SerializeField] private float cheatSheetHoldSeconds = 0.35f;
+        [SerializeField] private float cheatSheetHoldSeconds = 0.15f;
 
         private HandFeedbackRing leftRing;
         private HandFeedbackRing rightRing;
@@ -198,32 +198,29 @@ namespace ZombieCheckpoint.HCI.Gestures
 
         private void RefreshCheatSheetContent()
         {
-            if (cheatSheet == null || dispatcher == null) return;
+            if (cheatSheet == null) return;
 
             builder.Clear();
-            var bindings = dispatcher.Bindings;
-            for (int i = 0; i < bindings.Count; ++i)
-            {
-                GestureCommandBinding binding = bindings[i];
-                if (binding == null || !binding.IsEnabled) continue;
 
-                string handTag = binding.Hand switch
-                {
-                    HandSide.Left => " (izq)",
-                    HandSide.Right => " (der)",
-                    _ => string.Empty
-                };
-
-                builder.Append("<b>").Append(ResolveGestureLabel(binding.Gesture)).Append(handTag)
-                       .Append("</b>  →  ").Append(DescribeCommand(binding.Command)).Append('\n');
-            }
-
-            // Principio de IHC: Conocimiento en el mundo accesible al mirar la muñeca (como un reloj)
+            // 1. Checklist clínico idéntico al del mostrador de mesa
             if (InspectionChecklistController.Instance != null)
             {
-                builder.Append("\n<color=#FFD54F><b>── CONTROL CLÍNICO ──</b></color>\n");
                 builder.Append(InspectionChecklistController.Instance.GetSummaryText());
             }
+            else
+            {
+                builder.Append("<color=#EF5350><b>[  ]</b></color> <color=#FFFFFF><b>1. Auscultar corazón (tórax)</b></color>\n")
+                       .Append("<color=#EF5350><b>[  ]</b></color> <color=#FFFFFF><b>2. Evaluar ojos y luz UV</b></color>\n")
+                       .Append("<color=#EF5350><b>[  ]</b></color> <color=#FFFFFF><b>3. Examinar brazos y marcas</b></color>\n")
+                       .Append("<color=#EF5350><b>[  ]</b></color> <color=#FFFFFF><b>4. Revisar torso (descubrir polo)</b></color>\n")
+                       .Append("<color=#EF5350><b>[  ]</b></color> <color=#FFFFFF><b>5. Sellar pasaporte (Aprobado/Cuarentena)</b></color>\n");
+            }
+
+            // 2. Referencia rápida de gestos de mando en la parte inferior
+            builder.Append("\n<color=#64B5F6><b>── GESTOS DE MANDO ──</b></color>\n");
+            builder.Append("<size=82%>• <b>Palma arriba</b>: Levantar brazos\n")
+                   .Append("• <b>Índice al frente</b>: Ver pecho\n")
+                   .Append("• <b>Palma abajo</b>: Bajar brazos</size>\n");
 
             cheatSheet.SetContent(builder.ToString());
         }
