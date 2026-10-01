@@ -287,6 +287,9 @@ namespace ZombieCheckpoint.Core
                 torsoController.ConfigureBareTorso(torsoPrefab);
             }
 
+            // Después del torso para que su malla también reciba la calidad de inspección cercana.
+            npc.GetOrAddComponent<SurvivorRenderQuality>();
+
             Transform rightForeArm = null;
             Transform spine1 = null;
             Transform head = null;

@@ -93,12 +93,14 @@ Assets/Scripts/
 │   ├── SurvivorModel.cs         // Estado biológico, síntomas e identidad del PNJ
 │   ├── SurvivorHumanoidController.cs // Posturas naturales, cinemática bimanual y pose clínica
 │   ├── TorsoClothingController.cs    // Desvestimiento/remangado del polo y torso descubierto
+│   ├── SurvivorRenderQuality.cs      // LOD0 forzado a distancia de inspección, piel a 4 huesos, anisotrópico
 │   └── Symptoms/
 │       ├── ISymptom.cs          // Contrato base para síntomas clínicos
 │       ├── BiteMarkSymptom.cs   // Mordeduras de infectado en antebrazo
 │       ├── HeartbeatSymptom.cs  // Latido cardíaco (auscultación en Spine1)
 │       ├── PupilSymptom.cs      // Reflejo fotomotor pupilar (linterna en Head)
-│       └── RashSymptom.cs       // Erupción cutánea y petequias fluorescentes bajo UV
+│       ├── RashSymptom.cs       // Erupción cutánea y petequias fluorescentes bajo UV
+│       └── SkinMarkFactory.cs   // Texturas procedurales de lesiones y apoyo exacto sobre la piel (BakeMesh)
 ├── Tools/
 │   ├── IInspectionTool.cs       // Contrato base para herramientas diagnósticas
 │   ├── FlashlightTool.cs        // Linterna clínica con cono volumétrico y switch mecánico
@@ -303,6 +305,13 @@ Para permitir pruebas continuas y fluidas sin necesidad de conectar el visor Met
 * **Pasaporte y Sellos Esenciales:** El pasaporte muestra sólo nombre, edad y vencimiento (el ID y el grupo sanguíneo eran decorativos y no intervenían en ninguna decisión). Los sellos y la marca UV se reducen a una palabra (`APROBADO`, `CUARENTENA`, `AUTÉNTICO`, `FALSO`).
 * **Informe de Turno Compacto:** El jugador ve aciertos, infectados que pasaron, sanos en cuarentena y nota. El detalle completo de métricas IHC (tiempo medio, falsos positivos/negativos, uso de herramientas) se conserva íntegro en la consola (`[Métricas IHC]`) para el análisis de usabilidad.
 * **Ayuda de PC en 4 Líneas:** La tarjeta de controles del simulador pasa de 13 líneas a 4 con lo imprescindible para jugar; los ajustes finos (T, Q/E, R) siguen activos y documentados en la sección 5.
+
+### T. Fidelidad Visual en la Inspección Corporal
+* **Diagnóstico:** Las texturas del pack eran correctas (2048 px); el aspecto tosco venía de la geometría. Con `lodBias 0.4` (calidad Low, Quest) el civil se dibujaba en LOD1-LOD2 a 1,4 m; los LOD1-4 del torso descubierto no tenían huesos reasignados ni estaban en el `LODGroup`, así que se dibujaban los cinco a la vez en pose fija; las manchas eran Quads con la cara visible hacia dentro del cuerpo; la mordida quedaba a 12 cm del brazo (el eje del hueso del antebrazo es +X local, no +Y); y las pupilas de 15 mm caían en las mejillas.
+* **`SurvivorRenderQuality`:** fuerza LOD0 a menos de 3 m de la cámara y devuelve el control al `LODGroup` fuera de ese radio; `SkinQuality.Bone4` y anisotrópico x8 en las texturas del civil. Sin cambiar `QualitySettings`.
+* **`TorsoClothingController`:** reasigna los huesos de todos los LOD del torso y los registra en el `LODGroup`.
+* **`SkinMarkFactory`:** texturas procedurales (erupción con petequias, mordida con arcos dentales y hematoma) y `TrySnapToSkin`, que apoya la marca sobre la malla deformada actual con un rayo contra `BakeMesh`. Plantillas transparentes en `Assets/Resources/SkinMarks/` para que la variante del shader entre en la build de Quest.
+* **Pupilas:** discos de 7,5 mm apoyados sobre la córnea en el centro del iris de cada cabeza (`01m_head2` / `01f_head2`).
 
 ---
 

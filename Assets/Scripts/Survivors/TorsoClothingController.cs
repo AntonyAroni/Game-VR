@@ -29,6 +29,12 @@ namespace ZombieCheckpoint.Survivors
 
         public bool IsTorsoExposed => isTorsoExposed;
 
+        /// <summary>
+        /// Malla de mayor detalle del torso descubierto (LOD0). Los síntomas cutáneos la usan para
+        /// apoyarse exactamente sobre la piel.
+        /// </summary>
+        public SkinnedMeshRenderer BareTorsoRenderer { get; private set; }
+
         private void Awake()
         {
             AutoDetectShirtRenderers();
@@ -63,18 +69,62 @@ namespace ZombieCheckpoint.Survivors
             bareTorsoObject = Instantiate(torsoPrefab, transform);
             bareTorsoObject.name = "NPC_BareTorso_Visual";
 
-            // Vincular los huesos del SkinnedMeshRenderer al esqueleto del personaje
-            var targetSmr = bareTorsoObject.GetComponentInChildren<SkinnedMeshRenderer>();
-            if (targetSmr != null)
+            // Vincular TODOS los niveles de detalle al esqueleto del personaje. Si sólo se vinculaba el
+            // primero, los LOD1-4 quedaban atados a los huesos estáticos del prefab y se dibujaban a la vez
+            // en pose fija, superpuestos al pecho (parpadeo y aspecto tosco al descubrir el torso).
+            var torsoRenderers = bareTorsoObject.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            BareTorsoRenderer = null;
+            foreach (var smr in torsoRenderers)
             {
-                BindBonesToSkeleton(targetSmr);
+                BindBonesToSkeleton(smr);
                 if (bodyMat != null)
                 {
-                    targetSmr.sharedMaterial = bodyMat;
+                    smr.sharedMaterial = bodyMat;
+                }
+                if (BareTorsoRenderer == null || GetLodIndex(smr.name) == 0)
+                {
+                    BareTorsoRenderer = smr;
                 }
             }
 
+            RegisterInLodGroup(torsoRenderers);
             bareTorsoObject.SetActive(isTorsoExposed);
+        }
+
+        /// <summary>
+        /// Añade cada nivel del torso al nivel homónimo del LODGroup del personaje, para que el torso
+        /// cambie de detalle a la vez que la cabeza, los brazos y el pantalón.
+        /// </summary>
+        private void RegisterInLodGroup(SkinnedMeshRenderer[] torsoRenderers)
+        {
+            if (!TryGetComponent(out LODGroup lodGroup) || torsoRenderers.Length == 0) return;
+
+            LOD[] lods = lodGroup.GetLODs();
+            bool changed = false;
+            foreach (var smr in torsoRenderers)
+            {
+                int lodIndex = GetLodIndex(smr.name);
+                if (lodIndex < 0 || lodIndex >= lods.Length) continue;
+
+                var renderers = new List<Renderer>(lods[lodIndex].renderers);
+                if (renderers.Contains(smr)) continue;
+                renderers.Add(smr);
+                lods[lodIndex].renderers = renderers.ToArray();
+                changed = true;
+            }
+
+            if (changed)
+            {
+                lodGroup.SetLODs(lods);
+            }
+        }
+
+        /// <summary>Extrae N del sufijo "_lodN" de las mallas del pack de personajes (-1 si no lo tiene).</summary>
+        private static int GetLodIndex(string rendererName)
+        {
+            int marker = rendererName.LastIndexOf("_lod", System.StringComparison.OrdinalIgnoreCase);
+            if (marker < 0) return -1;
+            return int.TryParse(rendererName.Substring(marker + 4), out int index) ? index : -1;
         }
 
         private void BindBonesToSkeleton(SkinnedMeshRenderer smr)

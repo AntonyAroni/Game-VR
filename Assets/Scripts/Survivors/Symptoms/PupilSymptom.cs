@@ -26,7 +26,16 @@ namespace ZombieCheckpoint.Survivors.Symptoms
         private GameObject leftPupil;
         private GameObject rightPupil;
         private Material pupilMaterial;
-        private Vector3 basePupilScale = new Vector3(0.015f, 0.015f, 0.007f);
+        // Disco de ~7.5 mm: algo mayor que una pupila real (4-6 mm) para que su reacción a la luz se lea en
+        // la resolución del visor, pero ya no más grande que el iris (antes medía 15 mm y tapaba el ojo).
+        private Vector3 basePupilScale = new Vector3(0.0075f, 0.0075f, 0.003f);
+
+        // Centro del iris en el espacio local del hueso Head (X lateral, Y altura), medido sobre las dos
+        // cabezas del pack de personajes. La profundidad se resuelve apoyando la pupila sobre la malla.
+        private static readonly Vector2 MaleEyeAnchor = new Vector2(0.033f, 0.076f);
+        private static readonly Vector2 FemaleEyeAnchor = new Vector2(0.032f, 0.073f);
+        private const float FallbackEyeDepth = 0.108f;
+        private const float EyeRayStartDepth = 0.3f;
         private float currentPupilScaleFactor = 1.0f;
         private float lastLightExposeTime = -10f;
         private bool lastExposeWasUV = false;
@@ -44,7 +53,62 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             lastLightExposeTime = -10f;
             currentPupilScaleFactor = isAbnormal ? 1.35f : 1.0f;
             EnsureEyePupils();
+            if (Application.isPlaying)
+            {
+                SeatPupilsOnEyes();
+            }
             UpdatePupilAppearance();
+        }
+
+        /// <summary>
+        /// Coloca cada pupila en el centro del iris de la cabeza real del civil y la apoya sobre la superficie
+        /// del ojo. Antes usaban una posición genérica que en ambas cabezas caía en las mejillas.
+        /// </summary>
+        private void SeatPupilsOnEyes()
+        {
+            SkinnedMeshRenderer headSkin = FindHeadSkin();
+            bool isFemaleHead = headSkin != null && headSkin.name.ToLowerInvariant().Contains("_01f_");
+            Vector2 anchor = isFemaleHead ? FemaleEyeAnchor : MaleEyeAnchor;
+
+            SeatPupil(leftPupil, new Vector2(-anchor.x, anchor.y), headSkin);
+            SeatPupil(rightPupil, new Vector2(anchor.x, anchor.y), headSkin);
+        }
+
+        private void SeatPupil(GameObject pupil, Vector2 anchor, SkinnedMeshRenderer headSkin)
+        {
+            if (pupil == null) return;
+            Transform pupilTransform = pupil.transform;
+            pupilTransform.localPosition = new Vector3(anchor.x, anchor.y, FallbackEyeDepth);
+            pupilTransform.localRotation = Quaternion.identity;
+            if (headSkin == null) return;
+
+            // +Z local del hueso Head apunta hacia la cara.
+            Vector3 rayOrigin = transform.TransformPoint(new Vector3(anchor.x, anchor.y, EyeRayStartDepth));
+            Vector3 rayDirection = transform.TransformDirection(Vector3.back);
+            if (SkinMarkFactory.TryRaycastSkin(headSkin, rayOrigin, rayDirection, out Vector3 hit, out Vector3 normal))
+            {
+                // Media profundidad del disco por delante de la córnea: visible, sin flotar.
+                pupilTransform.position = hit + normal * (basePupilScale.z * 0.5f);
+                pupilTransform.rotation = Quaternion.LookRotation(-normal, transform.up);
+            }
+            else
+            {
+                Debug.LogWarning($"[PupilSymptom] No se encontró la superficie del ojo en {headSkin.name}; se usa la profundidad por defecto.");
+            }
+        }
+
+        /// <summary>Malla de cabeza de mayor detalle (LOD0) del civil al que pertenece este hueso.</summary>
+        private SkinnedMeshRenderer FindHeadSkin()
+        {
+            SkinnedMeshRenderer fallback = null;
+            foreach (var smr in transform.root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                string lowerName = smr.name.ToLowerInvariant();
+                if (!lowerName.Contains("head")) continue;
+                if (lowerName.EndsWith("_lod0")) return smr;
+                if (fallback == null) fallback = smr;
+            }
+            return fallback;
         }
 
         private void EnsureEyePupils()

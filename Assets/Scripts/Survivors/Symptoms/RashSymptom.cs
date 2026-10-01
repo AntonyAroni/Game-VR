@@ -31,6 +31,25 @@ namespace ZombieCheckpoint.Survivors.Symptoms
 
         private Camera mainCamera;
         private bool isUvActive = false;
+        private bool patchesSnappedToSkin = false;
+
+        // Puntos de anclaje de cada mancha en el espacio local de Spine1 (+Z = pecho) y su tamaño en metros.
+        // Evitan la franja pectoral: el torso femenino del pack incluye top y las manchas quedaban pintadas
+        // encima de la prenda. Parte alta del pecho, costillas y abdomen son piel en ambos modelos.
+        private static readonly Vector3[] PatchAnchors =
+        {
+            new Vector3(0.04f, 0.16f, 0f),    // Parte alta del pecho, bajo la clavícula
+            new Vector3(-0.08f, -0.03f, 0f),  // Costillas izquierdas
+            new Vector3(0.09f, -0.05f, 0f),   // Costillas derechas
+            new Vector3(0.0f, -0.09f, 0f),    // Región epigástrica
+            new Vector3(-0.05f, -0.13f, 0f),  // Abdomen
+        };
+        private static readonly float[] PatchSizes = { 0.095f, 0.11f, 0.09f, 0.08f, 0.085f };
+
+        /// <summary>Distancia a la que nace el rayo de apoyo delante del pecho (siempre fuera del cuerpo).</summary>
+        private const float SnapRayStartDepth = 0.4f;
+        /// <summary>Profundidad de la mancha cuando no hay malla de torso a la que apoyarse.</summary>
+        private const float FallbackSurfaceDepth = 0.14f;
 
         private void Awake()
         {
@@ -46,23 +65,19 @@ namespace ZombieCheckpoint.Survivors.Symptoms
 
         private void CreateMaterialsIfNull()
         {
-            Shader urpLit = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-
             if (clinicalRashMat == null)
             {
-                clinicalRashMat = new Material(urpLit);
+                // Manchas rojizas de borde difuso con petequias: se leen como lesión de piel, no como un parche.
+                clinicalRashMat = SkinMarkFactory.CreateMarkMaterial(SkinMarkFactory.RashTexture, false, Color.white);
                 clinicalRashMat.name = "M_Rash_Clinical";
-                clinicalRashMat.color = new Color(0.72f, 0.08f, 0.08f, 0.95f);
-                // Brillo leve de inflamación
-                clinicalRashMat.SetFloat("_Smoothness", 0.65f);
+                if (clinicalRashMat.HasProperty("_Smoothness")) clinicalRashMat.SetFloat("_Smoothness", 0.45f);
             }
 
             if (uvFluorescentMat == null)
             {
-                Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-                uvFluorescentMat = new Material(unlitShader);
+                // Misma forma, brillo propio verde bajo la lámpara de Wood.
+                uvFluorescentMat = SkinMarkFactory.CreateMarkMaterial(SkinMarkFactory.RashTexture, true, new Color(0.25f, 1.0f, 0.45f, 1.0f));
                 uvFluorescentMat.name = "M_Rash_UVFluorescent";
-                uvFluorescentMat.color = new Color(0.1f, 1.0f, 0.35f, 1.0f);
             }
         }
 
@@ -74,43 +89,65 @@ namespace ZombieCheckpoint.Survivors.Symptoms
             rashContainer.transform.SetParent(transform, false);
             rashContainer.transform.localPosition = Vector3.zero;
 
-            // Generar un conjunto orgánico de manchas en el pecho y costillas anteriores
-            Vector3[] patchOffsets = new Vector3[]
-            {
-                new Vector3(0.04f, 0.05f, 0.14f),   // Costilla derecha
-                new Vector3(-0.06f, 0.08f, 0.13f),  // Pectoral izquierdo
-                new Vector3(0.01f, -0.04f, 0.15f),  // Región epigástrica
-                new Vector3(0.08f, -0.02f, 0.12f),  // Flanco derecho
-                new Vector3(-0.07f, -0.05f, 0.12f), // Flanco izquierdo
-            };
-
-            Vector3[] patchScales = new Vector3[]
-            {
-                new Vector3(0.065f, 0.05f, 0.01f),
-                new Vector3(0.085f, 0.065f, 0.01f),
-                new Vector3(0.055f, 0.045f, 0.01f),
-                new Vector3(0.045f, 0.04f, 0.01f),
-                new Vector3(0.05f, 0.05f, 0.01f)
-            };
-
-            for (int i = 0; i < patchOffsets.Length; i++)
+            for (int i = 0; i < PatchAnchors.Length; i++)
             {
                 GameObject patch = GameObject.CreatePrimitive(PrimitiveType.Quad);
                 patch.name = $"Rash_Spot_{i + 1}";
                 patch.transform.SetParent(rashContainer.transform, false);
-                patch.transform.localPosition = patchOffsets[i];
-                patch.transform.localRotation = Quaternion.Euler(5f, 0f, Random.Range(-25f, 25f));
-                patch.transform.localScale = patchScales[i];
+                patch.transform.localScale = Vector3.one * PatchSizes[i];
 
                 Destroy(patch.GetComponent<Collider>());
 
                 var rend = patch.GetComponent<Renderer>();
-                rend.sharedMaterial = clinicalRashMat;
+                SkinMarkFactory.ConfigureMarkRenderer(rend, isUvActive ? uvFluorescentMat : clinicalRashMat);
                 patchRenderers.Add(rend);
             }
 
+            PlacePatchesInFrontOfChest();
             rashContainer.SetActive(false);
         }
+
+        /// <summary>
+        /// Posición provisional sobre el pecho, con la cara visible del Quad mirando hacia fuera del cuerpo.
+        /// Se usa hasta que exista una malla de torso a la que apoyar las manchas.
+        /// </summary>
+        private void PlacePatchesInFrontOfChest()
+        {
+            for (int i = 0; i < patchRenderers.Count && i < PatchAnchors.Length; i++)
+            {
+                if (patchRenderers[i] == null) continue;
+                Transform patch = patchRenderers[i].transform;
+                patch.localPosition = PatchAnchors[i] + Vector3.forward * FallbackSurfaceDepth;
+                // El Quad se ve desde su -Z: su +Z debe apuntar hacia dentro del pecho (-Z local de Spine1).
+                patch.localRotation = Quaternion.LookRotation(Vector3.back, Vector3.up) * Quaternion.Euler(0f, 0f, PatchRoll(i));
+            }
+        }
+
+        /// <summary>
+        /// Apoya cada mancha exactamente sobre la piel del torso descubierto, siguiendo su curvatura.
+        /// Se ejecuta una vez, la primera vez que el torso queda a la vista.
+        /// </summary>
+        private void SnapPatchesToSkin()
+        {
+            if (patchesSnappedToSkin || clothingController == null) return;
+            SkinnedMeshRenderer torso = clothingController.BareTorsoRenderer;
+            if (torso == null) return;
+
+            patchesSnappedToSkin = true;
+            Vector3 inward = -transform.forward;
+            for (int i = 0; i < patchRenderers.Count && i < PatchAnchors.Length; i++)
+            {
+                if (patchRenderers[i] == null) continue;
+                Vector3 rayOrigin = transform.TransformPoint(PatchAnchors[i] + Vector3.forward * SnapRayStartDepth);
+                if (!SkinMarkFactory.TrySnapToSkin(patchRenderers[i].transform, torso, rayOrigin, inward, transform.up, PatchRoll(i)))
+                {
+                    Debug.LogWarning($"[RashSymptom] No se encontró piel bajo {patchRenderers[i].name}; se mantiene su posición provisional.");
+                }
+            }
+        }
+
+        /// <summary>Giro fijo por mancha: variedad visual sin depender de Random entre rondas.</summary>
+        private static float PatchRoll(int index) => index * 67f % 360f;
 
         public void Initialize(bool hasRash)
         {
@@ -182,6 +219,7 @@ namespace ZombieCheckpoint.Survivors.Symptoms
 
             if (rashContainer.activeSelf != shouldShow)
             {
+                if (shouldShow) SnapPatchesToSkin();
                 rashContainer.SetActive(shouldShow);
             }
         }
