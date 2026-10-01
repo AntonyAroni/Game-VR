@@ -15,18 +15,46 @@ namespace ZombieCheckpoint.Documents
     {
         [Header("Referencias")]
         [SerializeField] private DocumentView documentView;
+
+        [Header("Físicas y Reposición")]
+        [SerializeField] private bool autoRespawnIfFallen = true;
+        [SerializeField] private float respawnFloorY = 0.50f;
+        [SerializeField] private float maxDistanceAllowed = 1.25f;
         
         public DocumentData CurrentData { get; private set; }
         public VerdictType AppliedVerdict { get; private set; } = VerdictType.None;
 
         private XRGrabInteractable grabInteractable;
+        private Rigidbody docRigidbody;
+        private Vector3 initialPosition;
+        private Quaternion initialRotation;
+        private Transform spawnPointAnchor;
+
+        public bool IsGrabbed => grabInteractable != null && grabInteractable.isSelected;
 
         private void Awake()
         {
             grabInteractable = GetComponent<XRGrabInteractable>();
+            docRigidbody = GetComponent<Rigidbody>();
+            initialPosition = transform.position;
+            initialRotation = transform.rotation;
+
+            gameObject.GetOrAddComponent<ZombieCheckpoint.HCI.DirectInteractionOnlyFilter>();
+
             if (documentView == null)
             {
                 documentView = GetComponentInChildren<DocumentView>();
+            }
+        }
+
+        private void Start()
+        {
+            var dsp = GameObject.Find("Document_SpawnPoint_Anchor");
+            if (dsp != null)
+            {
+                spawnPointAnchor = dsp.transform;
+                initialPosition = spawnPointAnchor.position;
+                initialRotation = spawnPointAnchor.rotation;
             }
         }
 
@@ -77,6 +105,20 @@ namespace ZombieCheckpoint.Documents
 
         private void Update()
         {
+            // Auto-reposición si el documento cae al suelo, es lanzado lejos o arrojado hacia el paciente
+            if (!IsGrabbed && autoRespawnIfFallen)
+            {
+                Vector3 origin = spawnPointAnchor != null ? spawnPointAnchor.position : initialPosition;
+                bool fallenToFloor = transform.position.y < respawnFloorY;
+                bool thrownFarAway = Vector3.Distance(transform.position, origin) > maxDistanceAllowed;
+                bool thrownPastBooth = transform.position.z > 1.15f;
+
+                if (fallenToFloor || thrownFarAway || thrownPastBooth)
+                {
+                    ResetToDesk();
+                }
+            }
+
             bool isCurrentlyUnderUV = (Time.time - lastUVExposeTime) < 0.2f;
             if (documentView != null)
             {
@@ -91,6 +133,24 @@ namespace ZombieCheckpoint.Documents
             {
                 documentView.ShowStamp(verdict);
             }
+        }
+
+        /// <summary>
+        /// Reposiciona el pasaporte/documento sobre su ancla del mostrador.
+        /// </summary>
+        public void ResetToDesk()
+        {
+            Vector3 resetPos = spawnPointAnchor != null ? spawnPointAnchor.position : initialPosition;
+            Quaternion resetRot = spawnPointAnchor != null ? spawnPointAnchor.rotation : initialRotation;
+
+            transform.SetPositionAndRotation(resetPos, resetRot);
+            if (docRigidbody != null)
+            {
+                docRigidbody.linearVelocity = Vector3.zero;
+                docRigidbody.angularVelocity = Vector3.zero;
+                docRigidbody.Sleep();
+            }
+            Debug.Log("[Documento] Reposicionado automáticamente sobre el mostrador de inspección.");
         }
     }
 }
