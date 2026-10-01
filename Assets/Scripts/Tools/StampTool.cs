@@ -126,6 +126,11 @@ namespace ZombieCheckpoint.Tools
 
         public void ApplyToTarget(GameObject target)
         {
+            // Principio de IHC (Mapeo Natural y Protección contra Falsos Positivos):
+            // Un sello diegético SOLO estampa si está activamente sostenido y empuñado por el usuario.
+            // Si el papel se tira o desliza sobre un sello apoyado e inmóvil en la mesa, NO debe estamparse.
+            if (!IsGrabbed) return;
+
             if (Time.time - lastStampTime < cooldownSeconds) return;
 
             if (target.TryGetComponent(out DocumentInteractable doc))

@@ -52,6 +52,8 @@ namespace ZombieCheckpoint.HCI
             EnsureProceduralSound("uv_hum", GenerateUVHumClip(0.35f));
             EnsureProceduralSound("uv_switch", GenerateClickClip(2400f, 0.035f));
             EnsureProceduralSound("cloth_rustle", GenerateClothRustleClip(0.35f));
+            EnsureProceduralSound("stethoscope_ears_on", GenerateStethoscopeEarsOnClip(0.22f));
+            EnsureProceduralSound("pencil_check", GeneratePencilCheckClip(0.16f));
         }
 
         private void OnEnable()
@@ -316,6 +318,67 @@ namespace ZombieCheckpoint.HCI
             }
 
             AudioClip clip = AudioClip.Create("proc_cloth_rustle", samplesCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private AudioClip GenerateStethoscopeEarsOnClip(float duration)
+        {
+            int sampleRate = 44100;
+            int samplesCount = (int)(sampleRate * duration);
+            float[] samples = new float[samplesCount];
+
+            for (int i = 0; i < samplesCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                float env = Mathf.Exp(-t * 22f);
+                // Clic metálico de muelle elástico binaural (~580 Hz) + sellado suave en oreja (~110 Hz)
+                float springFlex = Mathf.Sin(2f * Mathf.PI * 580f * t) * Mathf.Exp(-t * 35f) * 0.4f;
+                float sealThump = Mathf.Sin(2f * Mathf.PI * 110f * t) * Mathf.Exp(-t * 18f) * 0.5f;
+                float softFriction = (UnityEngine.Random.value * 2f - 1f) * 0.15f * env;
+                samples[i] = Mathf.Clamp((springFlex + sealThump + softFriction) * 0.8f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("proc_stethoscope_ears_on", samplesCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private AudioClip GeneratePencilCheckClip(float duration)
+        {
+            int sampleRate = 44100;
+            int samplesCount = (int)(sampleRate * duration);
+            float[] samples = new float[samplesCount];
+
+            for (int i = 0; i < samplesCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                // Dos trazos rápidos de lápiz: trazo descendente corto (check izquierdo) y trazo largo ascendente (check derecho)
+                float tPhase1 = t / (duration * 0.35f);
+                float tPhase2 = (t - duration * 0.35f) / (duration * 0.65f);
+
+                float strokeEnv = 0f;
+                float freqSweep = 2400f;
+
+                if (t < duration * 0.35f)
+                {
+                    strokeEnv = Mathf.Sin(Mathf.PI * Mathf.Clamp01(tPhase1)) * 0.7f;
+                    freqSweep = Mathf.Lerp(2200f, 2800f, tPhase1);
+                }
+                else
+                {
+                    strokeEnv = Mathf.Sin(Mathf.PI * Mathf.Clamp01(tPhase2)) * 0.95f;
+                    freqSweep = Mathf.Lerp(2600f, 3400f, tPhase2);
+                }
+
+                // Fricción granular de grafito sobre papel poroso
+                float paperFriction = (UnityEngine.Random.value * 2f - 1f) * 0.6f;
+                float graphiteTone = Mathf.Sin(2f * Mathf.PI * freqSweep * t) * 0.25f;
+
+                samples[i] = Mathf.Clamp((paperFriction + graphiteTone) * strokeEnv * 0.65f, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("proc_pencil_check", samplesCount, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }

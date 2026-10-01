@@ -152,10 +152,12 @@ namespace ZombieCheckpoint.HCI.Gestures
 
             if (leftReady)
             {
+                RefreshCheatSheetContent();
                 cheatSheet.ShowAt(leftFeedback.PalmPosition, leftFeedback.PalmNormal);
             }
             else if (rightReady)
             {
+                RefreshCheatSheetContent();
                 cheatSheet.ShowAt(rightFeedback.PalmPosition, rightFeedback.PalmNormal);
             }
             else
@@ -214,6 +216,13 @@ namespace ZombieCheckpoint.HCI.Gestures
 
                 builder.Append("<b>").Append(ResolveGestureLabel(binding.Gesture)).Append(handTag)
                        .Append("</b>  →  ").Append(DescribeCommand(binding.Command)).Append('\n');
+            }
+
+            // Principio de IHC: Conocimiento en el mundo accesible al mirar la muñeca (como un reloj)
+            if (InspectionChecklistController.Instance != null)
+            {
+                builder.Append("\n<color=#FFD54F><b>── CONTROL CLÍNICO ──</b></color>\n");
+                builder.Append(InspectionChecklistController.Instance.GetSummaryText());
             }
 
             cheatSheet.SetContent(builder.ToString());
